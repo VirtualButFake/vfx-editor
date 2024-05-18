@@ -1,0 +1,13 @@
+[package]
+name = "tijne/vfxeditor"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+fusion = "elttob/fusion@0.2.0"
+Lucide = "virtualbutfake/lucide-roblox@1.1.1"
+ThemeFramework = "virtualbutfake/themeframework@0.0.132"
+Tailwind = "virtualbutfake/tailwind@0.0.133"
+FusionUtils = "virtualbutfake/fusionutils@0.0.137"
+StudioComponents = "virtualbutfake/studiocomponents@0.0.134"

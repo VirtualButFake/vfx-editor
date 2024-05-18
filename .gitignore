@@ -1,0 +1,22 @@
+# Project place file
+/build.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+# Wally files
+/[Pp]ackages
+/[Ss]erverPackages
+
+# DarkLua builds
+/build
+
+# Zap output (done because of https://discord.com/channels/385151591524597761/1064606584430411906/1213016153538961478 in OSS discord)
+/.zap
+
+# sourcemap
+sourcemap.json
+
+# VSCodeCounter
+.VSCodeCounter

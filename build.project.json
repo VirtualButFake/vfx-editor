@@ -1,0 +1,8 @@
+{
+    "name": "VFXEditor",
+    "emitLegacyScripts": false,
+    "tree": {
+      "$path": "build"
+    }
+  }
+  

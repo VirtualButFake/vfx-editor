@@ -1,0 +1,31 @@
+{
+	"rules": [
+		{
+			"rule": "inject_global_value",
+			"identifier": "__DEV__",
+			"env": "RBLX_DEV"
+		},
+		"compute_expression",
+		"filter_after_early_return",
+		"remove_empty_do",
+		"remove_unused_if_branch",
+		"remove_unused_while",
+		"remove_nil_declaration",
+		{
+			"rule": "convert_require",
+			"current": {
+				"name": "path",
+				"sources": {
+					"@components": "src/components",
+					"@packages": "packages",
+                    "@src": "src"
+				}
+			},
+			"target": {
+				"name": "roblox",
+				"rojo_sourcemap": "sourcemap.json",
+				"indexing_style": "wait_for_child"
+			}
+		}
+	]
+}

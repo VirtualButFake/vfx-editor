@@ -1,0 +1,15 @@
+{
+	"name": "VFXEditor",
+    "emitLegacyScripts": false,
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"Packages": {
+				"$path": "packages"
+			},
+            "VFXEditor": {
+                "$path": "src"
+            }
+		}
+	}
+}

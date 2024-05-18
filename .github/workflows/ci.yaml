@@ -1,0 +1,31 @@
+name: Linting & styling checks
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  lint: 
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - uses: ok-nick/setup-aftman@v0.3.0
+      name: install aftman
+    - name: Lint
+      run: selene ./src
+  style:
+    name: Style
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - uses: JohnnyMorganz/stylua-action@v2
+      with:
+        version: latest
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --check ./src
