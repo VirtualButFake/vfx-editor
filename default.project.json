@@ -4,11 +4,11 @@
 	"tree": {
 		"$className": "DataModel",
 		"ReplicatedStorage": {
-			"Packages": {
-				"$path": "packages"
-			},
             "VFXEditor": {
-                "$path": "src"
+                "$path": "src",
+                "packages": {
+                    "$path": "packages"
+                }
             }
 		}
 	}

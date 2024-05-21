@@ -5,22 +5,30 @@ local tailwind = require("@packages/tailwind")
 local fusion = require("@packages/fusion")
 local Value = fusion.Value
 
+export type color = themeFramework.color
+export type colorTable = themeFramework.colorTable
+export type useColorFunction = themeFramework.useColorFunction
+
 local globals = {
 	font = Font.fromEnum(Enum.Font.SourceSans),
 	isDark = Value(false),
 	background = Value(Color3.fromRGB(255, 255, 255)),
 }
 
-local theme = themeFramework.new(script.components, function(_, themeName) 
+local function reloadTheme(self: themeFramework.themeFramework, themeName) 
     local isDark = themeName == "Dark"
     local background = isDark and tailwind.neutral[900] or tailwind.neutral[100]
     
     globals.isDark:set(isDark)
     globals.background:set(background)
-end)
 
-Studio.ThemeChanged:Connect(function(studioTheme: StudioTheme)
-	theme:load(theme:build(studioTheme.Name))
+    self:setFallback(background)
+end
+
+local theme = themeFramework.new(script.components, reloadTheme)
+
+Studio.ThemeChanged:Connect(function()
+	theme:load(theme:build(Studio.Theme.Name))
 end)
 
 theme:load(theme:build(Studio.Theme.Name))

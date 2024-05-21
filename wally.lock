@@ -10,29 +10,29 @@ dependencies = []
 [[package]]
 name = "tijne/vfxeditor"
 version = "0.1.0"
-dependencies = [["FusionUtils", "virtualbutfake/fusionutils@0.0.137"], ["Lucide", "virtualbutfake/lucide-roblox@1.1.1"], ["StudioComponents", "virtualbutfake/studiocomponents@0.0.134"], ["Tailwind", "virtualbutfake/tailwind@0.0.133"], ["ThemeFramework", "virtualbutfake/themeframework@0.0.132"], ["fusion", "elttob/fusion@0.2.0"]]
+dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.138"], ["studioComponents", "virtualbutfake/studiocomponents@0.0.145"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.141"]]
 
 [[package]]
 name = "virtualbutfake/fusionutils"
-version = "0.0.137"
+version = "0.0.138"
 dependencies = [["fusion", "elttob/fusion@0.2.0"]]
 
 [[package]]
 name = "virtualbutfake/lucide-roblox"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = []
 
 [[package]]
 name = "virtualbutfake/studiocomponents"
-version = "0.0.134"
-dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.1"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.137"], ["tailwind", "virtualbutfake/tailwind@0.0.133"], ["themeFramework", "virtualbutfake/themeframework@0.0.132"]]
+version = "0.0.145"
+dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.138"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.141"]]
 
 [[package]]
 name = "virtualbutfake/tailwind"
-version = "0.0.133"
+version = "0.0.135"
 dependencies = []
 
 [[package]]
 name = "virtualbutfake/themeframework"
-version = "0.0.132"
-dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.137"], ["tailwind", "virtualbutfake/tailwind@0.0.133"]]
+version = "0.0.141"
+dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.138"], ["tailwind", "virtualbutfake/tailwind@0.0.135"]]
