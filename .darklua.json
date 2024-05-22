@@ -16,7 +16,6 @@
 			"current": {
 				"name": "path",
 				"sources": {
-					"@components": "src/components",
 					"@packages": "packages",
                     "@src": "src"
 				}

@@ -122,7 +122,7 @@ return {
 	},
 	story = function(prnt, props)
 		if props.controls.Height == "" or props.controls.Width == "" then
-			props.controls.Height = 550
+			props.controls.Height = 300
 			props.controls.Width = 350
 		end
 

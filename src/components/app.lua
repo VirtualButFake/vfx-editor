@@ -2,14 +2,12 @@ local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local New = fusion.New
 local Out = fusion.Out
-local Ref = fusion.Ref
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local Value = fusion.Value
 
 local theme = require("@src/theme")
-local tailwind = require("@packages/tailwind")
 
 local studioComponents = require("@packages/studioComponents")
 local button = studioComponents.common.button
@@ -18,6 +16,7 @@ local frame = studioComponents.base.frame
 
 local appTopbar = require("./appTopbar")
 local instanceTreeRoot = require("./instanceTreeRoot")
+local scrollingFrame = require("./scrollingFrame")
 
 type props = {
 	Items: fusion.Value<{ Instance }>,
@@ -28,9 +27,6 @@ local function App(props: props)
 
 	local selectedInstance = Value(props.Items:get()[1] or nil)
 	local searchQuery = Value("")
-
-	local scrollingFrameAbsoluteSize = Value(Vector2.new(0, 0))
-	local scrollingFrameCanvasSize = Value(Vector2.new(0, 0))
 
 	return New("Frame")({
 		Name = "App",
@@ -136,39 +132,13 @@ local function App(props: props)
 				Stroke = useColor("Stroke", true),
 				Padding = UDim.new(0, 4),
 				Content = {
-					frame({
-						Name = "ScrollbarBackground",
-						Appearance = useColor("ScrollBarBackground", true),
-						Stroke = useColor("Stroke", true),
-						AnchorPoint = Vector2.new(1, 0),
-						Position = UDim2.new(1, 0, 0, 0),
-						Size = UDim2.new(0, 6, 1, 0),
-						ZIndex = 0,
-						Visible = Computed(function()
-                            if not scrollingFrameCanvasSize:get() or not scrollingFrameAbsoluteSize:get()  then
-                                return false
-                            end
-
-							return scrollingFrameCanvasSize:get().Y > scrollingFrameAbsoluteSize:get().Y
-						end),
-					}),
-					New("ScrollingFrame")({
-						Name = "InstanceTreeScroller",
-						AutomaticCanvasSize = Enum.AutomaticSize.Y,
-						BackgroundTransparency = 1,
-						BottomImage = "rbxassetid://17569049896",
-						CanvasSize = UDim2.fromScale(0, 0),
-						MidImage = "rbxassetid://17568857612",
-						ScrollBarImageColor3 = Computed(function()
-							return useColor("ScrollBar").color
-						end),
-						ScrollBarThickness = 6,
+					scrollingFrame({
 						Size = UDim2.new(1, 0, 1, 0),
-						TopImage = "rbxassetid://17569049728",
-						VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
-						[Out("AbsoluteSize")] = scrollingFrameAbsoluteSize,
-						[Out("AbsoluteCanvasSize")] = scrollingFrameCanvasSize,
-						[Children] = {
+						ScrollingFrameProps = {
+							VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
+							AutomaticCanvasSize = Enum.AutomaticSize.Y,
+						},
+						Content = {
 							New("UIListLayout")({
 								FillDirection = Enum.FillDirection.Vertical,
 								HorizontalAlignment = Enum.HorizontalAlignment.Left,
