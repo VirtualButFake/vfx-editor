@@ -1,22 +1,25 @@
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local New = fusion.New
-local Out = fusion.Out
+local Ref = fusion.Ref
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local Value = fusion.Value
-
-local theme = require("@src/theme")
 
 local studioComponents = require("@packages/studioComponents")
 local button = studioComponents.common.button
 local input = studioComponents.common.input
 local frame = studioComponents.base.frame
 
-local appTopbar = require("./appTopbar")
-local instanceTreeRoot = require("./instanceTreeRoot")
-local scrollingFrame = require("./scrollingFrame")
+local fusionUtils = require("@packages/fusionUtils")
+local topLayerProvider = fusionUtils.topLayerProvider
+
+local theme = require("@src/theme")
+
+local appTopbar = require("@components/appTopbar")
+local instanceTreeRoot = require("@components/instanceTreeRoot")
+local scrollingFrame = require("@components/scrollingFrame")
 
 type props = {
 	Items: fusion.Value<{ Instance }>,
@@ -28,7 +31,52 @@ local function App(props: props)
 	local selectedInstance = Value(props.Items:get()[1] or nil)
 	local searchQuery = Value("")
 
-	return New("Frame")({
+    local instanceTreeContainerFrame = frame({
+        Name = "InstanceTreeContainer",
+        Size = UDim2.new(1, -8, 1, -72),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 0),
+        Appearance = useColor("TreeBackground", true),
+        Stroke = useColor("Stroke", true),
+        Padding = UDim.new(0, 4),
+        Content = {
+            scrollingFrame({
+                Content = {
+                    New("UIListLayout")({
+                        FillDirection = Enum.FillDirection.Vertical,
+                        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+                        Padding = UDim.new(0, 4),
+                        SortOrder = Enum.SortOrder.LayoutOrder,
+                        VerticalAlignment = Enum.VerticalAlignment.Top,
+                    }),
+                    New("UIPadding")({
+                        PaddingRight = UDim.new(0, 4),
+                    }),
+                    Computed(function()
+                        return instanceTreeRoot({
+                            RootInstance = selectedInstance:get(),
+                            Query = searchQuery,
+                            MaxDepth = 3,
+                        })
+                    end, Clean),
+                    New("Frame")({
+                        Name = "Padding",
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(0, 0, 0, 128),
+                    }),
+                },
+                ScrollingFrameProps = {
+                    VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
+                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                },
+                Size = UDim2.new(1, 0, 1, 0),
+            }),
+        },
+    })
+
+	local instanceTreeContainer = topLayerProvider.new(instanceTreeContainerFrame)
+
+	local component = New("Frame")({
 		Name = "App",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
@@ -42,7 +90,7 @@ local function App(props: props)
 			}),
 			frame({
 				Name = "TopbarContainer",
-				Appearance = useColor("BackgroundPrimary", true),
+				Appearance = useColor("TopbarBackground", true),
 				Size = UDim2.new(1, 0, 0, 32),
 				Content = {
 					New("Frame")({
@@ -118,50 +166,18 @@ local function App(props: props)
 					input({
 						Color = "gray",
 						Variant = "default",
-						Placeholder = "Filter instances and properties..",
+						Placeholder = "Filter properties..",
 						Icon = "search",
 						Size = UDim2.new(1, 0, 1, 0),
 						Text = searchQuery,
 					}),
 				},
 			}),
-			frame({
-				Name = "InstanceTreeContainer",
-				Size = UDim2.new(1, -8, 1, -72),
-				Appearance = useColor("BackgroundPrimary", true),
-				Stroke = useColor("Stroke", true),
-				Padding = UDim.new(0, 4),
-				Content = {
-					scrollingFrame({
-						Size = UDim2.new(1, 0, 1, 0),
-						ScrollingFrameProps = {
-							VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
-							AutomaticCanvasSize = Enum.AutomaticSize.Y,
-						},
-						Content = {
-							New("UIListLayout")({
-								FillDirection = Enum.FillDirection.Vertical,
-								HorizontalAlignment = Enum.HorizontalAlignment.Left,
-								Padding = UDim.new(0, 4),
-								SortOrder = Enum.SortOrder.LayoutOrder,
-								VerticalAlignment = Enum.VerticalAlignment.Top,
-							}),
-							New("UIPadding")({
-								PaddingRight = UDim.new(0, 4),
-							}),
-							Computed(function()
-								return instanceTreeRoot({
-									RootInstance = selectedInstance:get(),
-									Query = searchQuery,
-									MaxDepth = 3,
-								})
-							end, Clean),
-						},
-					}),
-				},
-			}),
+            instanceTreeContainer
 		},
 	})
+
+    return component
 end
 
 return App

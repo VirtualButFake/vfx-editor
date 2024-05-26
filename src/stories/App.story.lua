@@ -84,6 +84,7 @@ local function generateInstance()
 	specs.SpreadAngle = Vector2.new(-360, 360)
 	specs.Texture = "rbxassetid://8030760338"
 	specs.ZOffset = 2
+    specs.Enabled = false
 	specs.Parent = particles
 
 	local drops = Instance.new("ParticleEmitter")
@@ -122,7 +123,7 @@ return {
 	},
 	story = function(prnt, props)
 		if props.controls.Height == "" or props.controls.Width == "" then
-			props.controls.Height = 300
+			props.controls.Height = 550
 			props.controls.Width = 350
 		end
 
