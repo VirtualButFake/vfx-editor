@@ -10,7 +10,7 @@ dependencies = []
 [[package]]
 name = "tijne/vfxeditor"
 version = "0.1.0"
-dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.140"], ["studioComponents", "virtualbutfake/studiocomponents@0.0.156"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.143"]]
+dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.140"], ["studioComponents", "virtualbutfake/studiocomponents@0.0.158"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.143"]]
 
 [[package]]
 name = "virtualbutfake/fusionutils"
@@ -24,7 +24,7 @@ dependencies = []
 
 [[package]]
 name = "virtualbutfake/studiocomponents"
-version = "0.0.156"
+version = "0.0.158"
 dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.140"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.143"]]
 
 [[package]]

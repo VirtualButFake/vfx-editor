@@ -23,7 +23,7 @@ return {
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 255)),
 		})
 
-        instance.Parent = workspace
+		instance.Parent = workspace
 
 		local component = instanceProperty({
 			Size = UDim2.new(0, 256, 0, 48),
@@ -43,7 +43,7 @@ return {
 
 		return function()
 			component:Destroy()
-            instance:Destroy()
+			instance:Destroy()
 		end
 	end),
 }

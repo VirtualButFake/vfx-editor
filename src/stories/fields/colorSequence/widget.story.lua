@@ -43,7 +43,7 @@ return {
 
 		return function()
 			component:Destroy()
-            instance:Destroy()
+			instance:Destroy()
 		end
 	end),
 }

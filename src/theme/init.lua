@@ -15,14 +15,14 @@ local globals = {
 	background = Value(Color3.fromRGB(255, 255, 255)),
 }
 
-local function reloadTheme(self: themeFramework.themeFramework, themeName) 
-    local isDark = themeName == "Dark"
-    local background = isDark and tailwind.neutral[900] or tailwind.neutral[100]
-    
-    globals.isDark:set(isDark)
-    globals.background:set(background)
+local function reloadTheme(self: themeFramework.themeFramework, themeName)
+	local isDark = themeName == "Dark"
+	local background = isDark and tailwind.neutral[900] or tailwind.neutral[100]
 
-    self:setFallback(background)
+	globals.isDark:set(isDark)
+	globals.background:set(background)
+
+	self:setFallback(background)
 end
 
 local theme = themeFramework.new(script.components, reloadTheme)
@@ -45,5 +45,5 @@ return setmetatable(theme, {
 }) :: themeFramework.themeFramework & { global: {
 	font: Font,
 	isDark: fusion.Value<boolean>,
-    background: fusion.Value<Color3>,
+	background: fusion.Value<Color3>,
 } }

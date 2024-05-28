@@ -59,11 +59,11 @@ local function sliderPropertyField(props: props)
 			-- propagate value to text
 			setText(tostring(sliderValue:get()))
 		end),
-        Observer(props.Value):onChange(function()
-            if props.Value:get() ~= sliderValue:get() then
-                sliderValue:set(props.Value:get())
-            end
-        end),
+		Observer(props.Value):onChange(function()
+			if props.Value:get() ~= sliderValue:get() then
+				sliderValue:set(props.Value:get())
+			end
+		end),
 	}
 
 	return New("Frame")({
@@ -90,11 +90,11 @@ local function sliderPropertyField(props: props)
 				Step = props.Step,
 				BarHeight = UDim.new(0, 6),
 				HandleSize = UDim2.new(0, 12, 0, 12),
-                OnDrag = function(isDragging)
-                    if not isDragging then
-                        props.Value:set(sliderValue:get())
-                    end
-                end,
+				OnDrag = function(isDragging)
+					if not isDragging then
+						props.Value:set(sliderValue:get())
+					end
+				end,
 			}),
 			input({
 				Variant = "default",

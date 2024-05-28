@@ -19,28 +19,28 @@ class.properties = {
 		name = "Enabled",
 		render = checkbox,
 	},
-    {
-        name = "ZOffset",
-        render = function(props)
-            return slider({
-                Instance = props.Instance,
-                PropertyName = props.PropertyName,
-                Value = props.Value,
-                LayoutOrder = props.LayoutOrder,
-                Min = 0,
-                Max = 20,
-                Step = 0.5,
-            })
-        end,
-    },
-    {
-        name = "Orientation",
-        render = dropdown
-    },
-    {
-        name = "Color",
-        render = colorSequence
-    }
+	{
+		name = "ZOffset",
+		render = function(props)
+			return slider({
+				Instance = props.Instance,
+				PropertyName = props.PropertyName,
+				Value = props.Value,
+				LayoutOrder = props.LayoutOrder,
+				Min = 0,
+				Max = 20,
+				Step = 0.5,
+			})
+		end,
+	},
+	{
+		name = "Orientation",
+		render = dropdown,
+	},
+	{
+		name = "Color",
+		render = colorSequence,
+	},
 }
 
 return class

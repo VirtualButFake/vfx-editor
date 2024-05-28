@@ -28,25 +28,25 @@ local function colorSequencePropertyField(props: props, _, useColor: theme.useCo
 	local isWidgetEnabled = Value(false)
 
 	-- no idea if this causes a memory leak, maybe it gets gc'ed? but doubtful
-    -- for future: widget causes dependencies for some weird reason, casuing a re-render at points
-    -- i have no idea why this happens, i know that it comes from the initialization, but it occurs even when no state objects are used (set all values to constant to test)
-    -- so where is the dependency coming from???
-    widget({
-        Name = "Color Sequence Editor",
-        Id = HttpService:GenerateGUID(),
-        InitialDockTo = Enum.InitialDockState.Float,
-        InitialEnabled = false,
-        ForceInitialEnabled = true,
-        FloatingSize = Vector2.new(500, 200),
-        MinimumSize = Vector2.new(500, 200),
-        Enabled = isWidgetEnabled,
-        [Children] = {
-            editor({
-                Value = props.Value,
-                useColor = useColor,
-            }),
-        },
-    })
+	-- for future: widget causes dependencies for some weird reason, casuing a re-render at points
+	-- i have no idea why this happens, i know that it comes from the initialization, but it occurs even when no state objects are used (set all values to constant to test)
+	-- so where is the dependency coming from???
+	widget({
+		Name = "Color Sequence Editor",
+		Id = HttpService:GenerateGUID(),
+		InitialDockTo = Enum.InitialDockState.Float,
+		InitialEnabled = false,
+		ForceInitialEnabled = true,
+		FloatingSize = Vector2.new(500, 200),
+		MinimumSize = Vector2.new(500, 200),
+		Enabled = isWidgetEnabled,
+		[Children] = {
+			editor({
+				Value = props.Value,
+				useColor = useColor,
+			}),
+		},
+	})
 
 	local colorButton = button({
 		Appearance = { color = Color3.new(1, 1, 1), transparency = 1 },

@@ -17,7 +17,7 @@ local function instanceProperty(props: props)
 	local useColor = theme:get("InstanceTreeItem", "gray", "default", "Base")
 
 	return New("Frame")({
-        Name = "PropertyContainer",
+		Name = "PropertyContainer",
 		Size = props.Size,
 		Position = props.Position,
 		BackgroundTransparency = 1,
@@ -29,14 +29,14 @@ local function instanceProperty(props: props)
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}),
-            text({
-                Appearance = useColor("Text", true),
-                Text = props.Property,
-                Size = UDim2.new(0.5, 0, 0, 20),
-                TextXAlignment = Enum.TextXAlignment.Left,
-            }),
+			text({
+				Appearance = useColor("Text", true),
+				Text = props.Property,
+				Size = UDim2.new(0.5, 0, 0, 20),
+				TextXAlignment = Enum.TextXAlignment.Left,
+			}),
 			New("Frame")({
-                Name = "Property",
+				Name = "Property",
 				Size = UDim2.new(0.5, 0, 1, 0),
 				BackgroundTransparency = 1,
 				[fusion.Children] = {

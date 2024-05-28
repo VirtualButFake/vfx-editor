@@ -31,48 +31,48 @@ local function App(props: props)
 	local selectedInstance = Value(props.Items:get()[1] or nil)
 	local searchQuery = Value("")
 
-    local instanceTreeContainerFrame = frame({
-        Name = "InstanceTreeContainer",
-        Size = UDim2.new(1, -8, 1, -72),
-        AnchorPoint = Vector2.new(0.5, 0),
-        Position = UDim2.new(0.5, 0, 0, 0),
-        Appearance = useColor("TreeBackground", true),
-        Stroke = useColor("Stroke", true),
-        Padding = UDim.new(0, 4),
-        Content = {
-            scrollingFrame({
-                Content = {
-                    New("UIListLayout")({
-                        FillDirection = Enum.FillDirection.Vertical,
-                        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-                        Padding = UDim.new(0, 4),
-                        SortOrder = Enum.SortOrder.LayoutOrder,
-                        VerticalAlignment = Enum.VerticalAlignment.Top,
-                    }),
-                    New("UIPadding")({
-                        PaddingRight = UDim.new(0, 4),
-                    }),
-                    Computed(function()
-                        return instanceTreeRoot({
-                            RootInstance = selectedInstance:get(),
-                            Query = searchQuery,
-                            MaxDepth = 3,
-                        })
-                    end, Clean),
-                    New("Frame")({
-                        Name = "Padding",
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 0, 0, 128),
-                    }),
-                },
-                ScrollingFrameProps = {
-                    VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
-                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                },
-                Size = UDim2.new(1, 0, 1, 0),
-            }),
-        },
-    })
+	local instanceTreeContainerFrame = frame({
+		Name = "InstanceTreeContainer",
+		Size = UDim2.new(1, -8, 1, -72),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 0),
+		Appearance = useColor("TreeBackground", true),
+		Stroke = useColor("Stroke", true),
+		Padding = UDim.new(0, 4),
+		Content = {
+			scrollingFrame({
+				Content = {
+					New("UIListLayout")({
+						FillDirection = Enum.FillDirection.Vertical,
+						HorizontalAlignment = Enum.HorizontalAlignment.Left,
+						Padding = UDim.new(0, 4),
+						SortOrder = Enum.SortOrder.LayoutOrder,
+						VerticalAlignment = Enum.VerticalAlignment.Top,
+					}),
+					New("UIPadding")({
+						PaddingRight = UDim.new(0, 4),
+					}),
+					Computed(function()
+						return instanceTreeRoot({
+							RootInstance = selectedInstance:get(),
+							Query = searchQuery,
+							MaxDepth = 3,
+						})
+					end, Clean),
+					New("Frame")({
+						Name = "Padding",
+						BackgroundTransparency = 1,
+						Size = UDim2.new(0, 0, 0, 128),
+					}),
+				},
+				ScrollingFrameProps = {
+					VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
+					AutomaticCanvasSize = Enum.AutomaticSize.Y,
+				},
+				Size = UDim2.new(1, 0, 1, 0),
+			}),
+		},
+	})
 
 	local instanceTreeContainer = topLayerProvider.new(instanceTreeContainerFrame)
 
@@ -173,11 +173,11 @@ local function App(props: props)
 					}),
 				},
 			}),
-            instanceTreeContainer
+			instanceTreeContainer,
 		},
 	})
 
-    return component
+	return component
 end
 
 return App

@@ -49,9 +49,9 @@ local function editor(props: props)
 	})
 
 	local sequenceNodes = Computed(function()
-        -- potential optimization here: doing this causes all timeline items to refresh when a new node is added
-        -- (colorsequence.keypoints provides a different table each time, so fusion thinks it's a new table and re-renders)
-        -- or something? because all keypoints do match up, but it still re-renders all of them
+		-- potential optimization here: doing this causes all timeline items to refresh when a new node is added
+		-- (colorsequence.keypoints provides a different table each time, so fusion thinks it's a new table and re-renders)
+		-- or something? because all keypoints do match up, but it still re-renders all of them
 		return props.Value:get().Keypoints
 	end)
 
@@ -198,6 +198,14 @@ local function editor(props: props)
 							})
 					end, Clean),
 				},
+			}),
+			New("Frame")({
+				Name = "ColorToolbar",
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 36),
+				[Children] = {
+                    -- edit time, color, delete keypoint, left-aligned
+                },
 			}),
 		},
 	}))

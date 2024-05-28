@@ -28,7 +28,7 @@ return {
 		})
 
 		local content = New("Frame")({
-            BackgroundTransparency = 1,
+			BackgroundTransparency = 1,
 			Parent = parent,
 			Size = UDim2.new(1, 0, 1, 0),
 			[Children] = {

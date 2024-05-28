@@ -5,7 +5,6 @@ local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local New = fusion.New
-local Out = fusion.Out
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
@@ -410,17 +409,15 @@ local function instanceTreeItem(props: props)
 									return props.Instance[name] == nil
 								end)
 
-                                local propertyChanged
+								local propertyChanged
 								if instanceHasProperty then
-									propertyChanged = props.Instance
-										:GetPropertyChangedSignal(name)
-										:Connect(function()
-											local value = props.Instance[name]
+									propertyChanged = props.Instance:GetPropertyChangedSignal(name):Connect(function()
+										local value = props.Instance[name]
 
-											if usedProcessedProperties[name]:get() ~= value then
-												usedProcessedProperties[name]:set(props.Instance[name])
-											end
-										end)
+										if usedProcessedProperties[name]:get() ~= value then
+											usedProcessedProperties[name]:set(props.Instance[name])
+										end
+									end)
 								end
 
 								local propertyLineType = index == 1 and "StartVertical" or "Vertical"

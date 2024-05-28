@@ -55,10 +55,10 @@ local function AppTopbarItem(props: props)
 	)
 
 	return New("Frame")({
-        Name = "AppTopbarItemWrapper",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 0, 1, 0),
-        AutomaticSize = Enum.AutomaticSize.X,
+		Name = "AppTopbarItemWrapper",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 0, 1, 0),
+		AutomaticSize = Enum.AutomaticSize.X,
 		[Children] = {
 			baseButton({
 				Name = "AppTopbarItem",

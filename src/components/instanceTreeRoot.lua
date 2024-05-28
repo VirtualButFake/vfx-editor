@@ -12,10 +12,10 @@ type props = {
 
 local function instanceTree(props: props)
 	return New("Frame")({
-        Name = "InstanceTreeRoot",
+		Name = "InstanceTreeRoot",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
+		AutomaticSize = Enum.AutomaticSize.Y,
 		[Children] = {
 			instanceTreeItem({
 				Instance = props.RootInstance,

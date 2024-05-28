@@ -28,6 +28,11 @@ local COMPONENT_ONLY_PROPERTIES = {
 }
 
 local function pluginWidget(props: props)
+	if plugin == nil then
+		warn("Attempted to create widget but plugin is nil!")
+		return nil
+	end
+
 	if props.ZIndexBehavior == nil then
 		props.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	end

@@ -3,7 +3,7 @@ local tailwind = require("@packages/tailwind")
 return function(themeName: string)
 	return {
 		Base = {
-            TopbarBackground = themeName == "Dark" and tailwind.neutral[800] or tailwind.neutral[50],
+			TopbarBackground = themeName == "Dark" and tailwind.neutral[800] or tailwind.neutral[50],
 			TreeBackground = {
 				color = themeName == "Dark" and tailwind.neutral[800] or tailwind.neutral[50],
 				transparency = 0,

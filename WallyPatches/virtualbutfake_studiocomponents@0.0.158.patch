@@ -1,0 +1,41 @@
+diff --git a/studiocomponents/build/components/common/input.lua b/studiocomponents/build/components/common/input.lua
+index f3eca38..c997a66 100644
+--- a/studiocomponents/build/components/common/input.lua
++++ b/studiocomponents/build/components/common/input.lua
+@@ -1,4 +1,5 @@
+ local CoreGui = game:GetService("CoreGui")
++local PluginDebugService = game:GetService("PluginDebugService")
+ local StarterGui = game:GetService("StarterGui")
+ 
+ local fusion = require(script.Parent.Parent.Parent.Parent.fusion)
+@@ -25,7 +26,7 @@ local baseButton = require(script.Parent.Parent.base.button)
+ local baseTextbox = require(script.Parent.Parent.base.textBox)
+ local baseIcon = require(script.Parent.Parent.base.icon)
+ 
+-local plugin = script:FindFirstAncestorWhichIsA("Plugin")
++local plugin = script:FindFirstAncestorWhichIsA("Plugin") or PluginDebugService:FindFirstChild("plugin") :: Plugin
+ local pluginMouse = plugin and plugin:GetMouse() or nil
+ 
+ type props = {
+@@ -35,8 +36,8 @@ type props = {
+ 	Disabled: fusion.CanBeState<boolean>?,
+ 	Placeholder: fusion.CanBeState<string>?,
+ 	TextSize: fusion.CanBeState<number>?,
+-	Icon: (string? )| baseIcon.icon?,
+-	TrailingIcon: (string? )| baseIcon.icon?,
++	Icon: string? | baseIcon.icon?,
++	TrailingIcon: string? | baseIcon.icon?,
+ 	Text: fusion.CanBeState<string>?,
+ 	TextAlignment: fusion.CanBeState<Enum.TextXAlignment>?,
+ 	BlockMouseIcon: fusion.CanBeState<boolean>?,
+@@ -45,8 +46,8 @@ type props = {
+ 	OnFocusLost: ((text: string, enterPressed: boolean, input: InputObject) -> nil)?,
+ 	Slots: {
+ 		Left: ((color: theme.useColorFunction) -> fusion.CanBeState<{ GuiObject }>)?,
+-		Right: ((color: theme.useColorFunction) -> fusion.CanBeState<{ GuiObject }>)?	
+-}?
++		Right: ((color: theme.useColorFunction) -> fusion.CanBeState<{ GuiObject }>)?,
++	}?,
+ }
+ 
+ local function input(props: props): Frame
