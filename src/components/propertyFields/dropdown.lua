@@ -27,6 +27,10 @@ local function dropdownPropertyField(props: props)
 		props.Value:set(parentEnum[selectedOptions:get()[1]])
 	end)
 
+    local onPropertyChange = Observer(props.Value):onChange(function()
+        selectedOptions:set({ props.Value:get().Name })
+    end)
+
 	return selectMenu({
 		Color = "gray",
 		Variant = "default",
@@ -56,6 +60,7 @@ local function dropdownPropertyField(props: props)
 		Size = UDim2.new(1, 0, 0, 20),
 		[Cleanup] = function()
 			disconnectObserver()
+            onPropertyChange()
 		end,
 	})
 end

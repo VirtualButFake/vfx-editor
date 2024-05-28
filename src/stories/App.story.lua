@@ -4,10 +4,12 @@ local storyBase = studioComponents.utility.storyBase
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local New = fusion.New
+local Clean = fusion.cleanup
 
 local Value = fusion.Value
 
 local theme = require("@src/theme")
+local historyHandler = require("@src/lib/historyHandler")
 
 local app = require("@src/components/app")
 
@@ -84,7 +86,7 @@ local function generateInstance()
 	specs.SpreadAngle = Vector2.new(-360, 360)
 	specs.Texture = "rbxassetid://8030760338"
 	specs.ZOffset = 2
-    specs.Enabled = false
+	specs.Enabled = false
 	specs.Parent = particles
 
 	local drops = Instance.new("ParticleEmitter")
@@ -111,6 +113,7 @@ local function generateInstance()
 	drops.Parent = particles
 
 	particles.Parent = ice
+	ice.Parent = workspace
 
 	return ice
 end
@@ -132,7 +135,7 @@ return {
 				or Color3.fromRGB(255, 255, 255)
 
 			local instances = Value({
-				generateInstance(),
+				historyHandler("Create story instance", generateInstance),
 			})
 
 			local background = New("Frame")({
@@ -150,6 +153,7 @@ return {
 
 			return function()
 				background:Destroy()
+				Clean(instances:get())
 			end
 		end)(prnt, props)
 	end,

@@ -2,9 +2,11 @@ local HttpService = game:GetService("HttpService")
 
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
+local Clean = fusion.cleanup
 local Cleanup = fusion.Cleanup
 local New = fusion.New
 
+local Computed = fusion.Computed
 local Value = fusion.Value
 
 local studioComponents = require("@packages/studioComponents")
@@ -25,22 +27,26 @@ type props = {
 local function colorSequencePropertyField(props: props, _, useColor: theme.useColorFunction)
 	local isWidgetEnabled = Value(false)
 
-    -- no idea if this causes a memory leak, maybe it gets gc'ed? but doubtful
-	widget({
-		Name = "Color Sequence Editor",
-		Id = HttpService:GenerateGUID(),
-		InitialDockTo = Enum.InitialDockState.Float,
-		InitialEnabled = false,
-		FloatingSize = Vector2.new(500, 200),
-		MinimumSize = Vector2.new(500, 200),
-		Enabled = isWidgetEnabled,
-		ForceInitialEnabled = true,
+	-- no idea if this causes a memory leak, maybe it gets gc'ed? but doubtful
+    -- for future: widget causes dependencies for some weird reason, casuing a re-render at points
+    -- i have no idea why this happens, i know that it comes from the initialization, but it occurs even when no state objects are used (set all values to constant to test)
+    -- so where is the dependency coming from???
+    widget({
+        Name = "Color Sequence Editor",
+        Id = HttpService:GenerateGUID(),
+        InitialDockTo = Enum.InitialDockState.Float,
+        InitialEnabled = false,
+        ForceInitialEnabled = true,
+        FloatingSize = Vector2.new(500, 200),
+        MinimumSize = Vector2.new(500, 200),
+        Enabled = isWidgetEnabled,
         [Children] = {
             editor({
                 Value = props.Value,
+                useColor = useColor,
             }),
-        }
-	})
+        },
+    })
 
 	local colorButton = button({
 		Appearance = { color = Color3.new(1, 1, 1), transparency = 1 },
@@ -52,9 +58,9 @@ local function colorSequencePropertyField(props: props, _, useColor: theme.useCo
 		end,
 		[Cleanup] = {
 			function()
-                -- not destroying it, see https://devforum.roblox.com/t/2853087
-                isWidgetEnabled:set(false)
-            end,
+				-- not destroying it, see https://devforum.roblox.com/t/2853087
+				isWidgetEnabled:set(false)
+			end,
 		},
 		[Children] = {
 			New("Frame")({

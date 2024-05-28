@@ -28,9 +28,9 @@ local COMPONENT_ONLY_PROPERTIES = {
 }
 
 local function pluginWidget(props: props)
-    if props.ZIndexBehavior == nil then
-        props.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    end
+	if props.ZIndexBehavior == nil then
+		props.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	end
 
 	local newWidget = plugin:CreateDockWidgetPluginGui(
 		props.Id,
@@ -45,7 +45,7 @@ local function pluginWidget(props: props)
 		)
 	)
 
-	for _, propertyName in pairs(COMPONENT_ONLY_PROPERTIES) do
+	for _, propertyName in COMPONENT_ONLY_PROPERTIES do
 		props[propertyName] = nil
 	end
 

@@ -22,7 +22,9 @@ local fusionUtils = require("@packages/fusionUtils")
 local peek = fusionUtils.peek
 
 local theme = require("@src/theme")
+
 local getPropertiesForInstance = require("@src/lib/getPropertiesForInstance")
+local historyHandler = require("@src/lib/historyHandler")
 
 local instanceProperty = require("@src/components/instanceProperty")
 
@@ -141,6 +143,14 @@ local function instanceTreeItem(props: props)
 	local subItems = Value({})
 	local showSubContent = Value(true)
 
+	local children = Value(props.Instance:GetChildren())
+
+	local childAddedConnection = props.Instance.ChildAdded:Connect(function(child)
+		local newChildren = children:get()
+		table.insert(newChildren, child)
+		children:set(newChildren)
+	end)
+
 	return New("Frame")({
 		Name = "InstanceTreeItem",
 		AutomaticSize = Enum.AutomaticSize.Y,
@@ -148,6 +158,7 @@ local function instanceTreeItem(props: props)
 		Size = UDim2.new(1, 0, 0, 0),
 		[Cleanup] = {
 			onNameChanged,
+			childAddedConnection,
 		},
 		[Children] = {
 			New("UIListLayout")({
@@ -291,7 +302,7 @@ local function instanceTreeItem(props: props)
 				AutomaticSize = Enum.AutomaticSize.Y,
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, 0),
-                Visible = showSubContent,
+				Visible = showSubContent,
 				[Children] = {
 					New("UIListLayout")({
 						FillDirection = Enum.FillDirection.Vertical,
@@ -313,7 +324,7 @@ local function instanceTreeItem(props: props)
 									SortOrder = Enum.SortOrder.LayoutOrder,
 									VerticalAlignment = Enum.VerticalAlignment.Top,
 								}),
-								ForPairs(props.Instance:GetChildren(), function(index, value)
+								ForPairs(children, function(index, value)
 									if not table.find(ALLOWED_CLASSNAMES, value.ClassName) then
 										return index, nil
 									end
@@ -329,7 +340,7 @@ local function instanceTreeItem(props: props)
 											Depth = props.Depth + 1,
 											MaxDepth = props.MaxDepth,
 											TreeContext = {
-												Children = props.Instance:GetChildren(),
+												Children = children:get(),
 												Lines = cascadingLines,
 											},
 										})
@@ -344,9 +355,9 @@ local function instanceTreeItem(props: props)
 						LayoutOrder = 2,
 						Size = UDim2.new(1, 0, 0, 0),
 						[Children] = {
-                            New("UIPadding") {
-                                PaddingRight = UDim.new(0, 2),
-                            },
+							New("UIPadding")({
+								PaddingRight = UDim.new(0, 2),
+							}),
 							New("UIListLayout")({
 								FillDirection = Enum.FillDirection.Vertical,
 								Padding = UDim.new(0, 2),
@@ -354,9 +365,12 @@ local function instanceTreeItem(props: props)
 								VerticalAlignment = Enum.VerticalAlignment.Top,
 							}),
 							ForPairs(instanceProperties, function(index, property)
-                                if props.Query:get() ~= "" and not string.find(property.name:lower(), props.Query:get():lower()) then
-                                    return index, nil
-                                end
+								if
+									props.Query:get() ~= ""
+									and not string.find(property.name:lower(), props.Query:get():lower())
+								then
+									return index, nil
+								end
 
 								local name = property.name
 								local processedProperty = property.get and property.get(props.Instance)
@@ -383,14 +397,34 @@ local function instanceTreeItem(props: props)
 								}, processedProperties, useColor)
 
 								local stateChangedObserver = Observer(usedProcessedProperties[name]):onChange(function()
-									if property.set then
-										property.set(props.Instance, usedProcessedProperties[name]:get())
-									else
-										props.Instance[name] = usedProcessedProperties[name]:get()
-									end
+									historyHandler(`Set {name} to {usedProcessedProperties[name]:get()}`, function()
+										if property.set then
+											property.set(props.Instance, usedProcessedProperties[name]:get())
+										else
+											props.Instance[name] = usedProcessedProperties[name]:get()
+										end
+									end)
 								end)
 
+								local instanceHasProperty = pcall(function()
+									return props.Instance[name] == nil
+								end)
+
+                                local propertyChanged
+								if instanceHasProperty then
+									propertyChanged = props.Instance
+										:GetPropertyChangedSignal(name)
+										:Connect(function()
+											local value = props.Instance[name]
+
+											if usedProcessedProperties[name]:get() ~= value then
+												usedProcessedProperties[name]:set(props.Instance[name])
+											end
+										end)
+								end
+
 								local propertyLineType = index == 1 and "StartVertical" or "Vertical"
+								local subItemsCount = #peek(subItems)
 
 								if renderedProperty then
 									return index,
@@ -401,6 +435,7 @@ local function instanceTreeItem(props: props)
 											Size = UDim2.new(1, 0, 0, 24),
 											[Cleanup] = {
 												stateChangedObserver,
+												propertyChanged,
 											},
 											[Children] = {
 												instanceProperty({
@@ -439,7 +474,7 @@ local function instanceTreeItem(props: props)
 																	-- if no treecontext exists or this instance has no children and we are not the last child, render the line
 																	if
 																		not props.TreeContext
-																		or #subItems:get() > 0
+																		or subItemsCount > 0
 																			and table.find(
 																				treeContextChildren,
 																				props.Instance
@@ -461,7 +496,7 @@ local function instanceTreeItem(props: props)
 															},
 														}),
 														-- lines for the sub content, at the same depth as the properties
-														if #subItems:get() > 0
+														if subItemsCount > 0
 															then New("Frame")({
 																Name = tostring(props.Depth),
 																BackgroundTransparency = 1,
@@ -482,7 +517,7 @@ local function instanceTreeItem(props: props)
 																	}, function(idx, value)
 																		-- if we have no idea where we are in the tree, just render the line
 																		if
-																			#subItems:get() > 0 or not props.TreeContext
+																			subItemsCount > 0 or not props.TreeContext
 																		then
 																			return idx, makeLine(value)
 																		end
