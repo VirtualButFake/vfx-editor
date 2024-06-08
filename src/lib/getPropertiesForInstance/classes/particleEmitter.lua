@@ -5,13 +5,14 @@ local input = require("@components/propertyFields/input")
 local slider = require("@components/propertyFields/slider")
 local dropdown = require("@components/propertyFields/dropdown")
 local colorSequence = require("@components/propertyFields/colorSequence")
+local numberSequence = require("@components/propertyFields/numberSequence")
 
 function class.is(instance: Instance)
 	return instance:IsA("ParticleEmitter")
 end
 
 class.properties = {
-	{
+	--[[{
 		name = "Name",
 		render = input,
 	},
@@ -33,14 +34,18 @@ class.properties = {
 			})
 		end,
 	},
-	{
+	 {
 		name = "Orientation",
 		render = dropdown,
-	},
+	}, ]]
 	{
 		name = "Color",
 		render = colorSequence,
 	},
+    {
+        name = "Transparency",
+        render = numberSequence,
+    }
 }
 
 return class

@@ -1,7 +1,6 @@
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local New = fusion.New
-local Ref = fusion.Ref
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed

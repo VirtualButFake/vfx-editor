@@ -35,8 +35,8 @@ type property = {
 			PropertyName: string,
 			Value: fusion.Value<any>,
 		},
-		properties: processedProperties,
-		useColor: theme.useColorFunction
+		useColor: theme.useColorFunction,
+		properties: processedProperties
 	) -> nil,
 	get: (instance: Instance) -> any,
 	set: (instance: Instance, value: any) -> nil,

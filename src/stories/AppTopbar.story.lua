@@ -7,9 +7,6 @@ local New = fusion.New
 
 local Value = fusion.Value
 
-local tailwind = require("@packages/tailwind")
-local theme = require("@src/theme")
-
 local appTopbar = require("@src/components/appTopbar")
 
 return {

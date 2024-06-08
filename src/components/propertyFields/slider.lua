@@ -3,6 +3,8 @@ local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local New = fusion.New
 
+local Clean = fusion.cleanup
+local Computed = fusion.Computed
 local Observer = fusion.Observer
 local Value = fusion.Value
 
@@ -26,38 +28,12 @@ type props = {
 
 local function sliderPropertyField(props: props)
 	local textValue = Value(tostring(props.Value:get()))
-	local visibleTextValue = Value(tostring(props.Value:get()))
-
 	local sliderValue = Value(props.Value:get())
 
-	local function setText(value: string)
-		textValue:set(value)
-		visibleTextValue:set(value)
-	end
-
 	local connections = {
-		Observer(textValue):onChange(function()
-			-- filter value, then propagate to slider
-			local value = tonumber(textValue:get())
-
-			if not value then
-				setText(tostring(sliderValue:get()))
-				return
-			end
-
-			if value < props.Min then
-				value = props.Min
-				setText(tostring(value))
-			elseif value > props.Max then
-				value = props.Max
-				setText(tostring(value))
-			end
-
-			sliderValue:set(value)
-		end),
 		Observer(sliderValue):onChange(function()
 			-- propagate value to text
-			setText(tostring(sliderValue:get()))
+			textValue:set(tostring(sliderValue:get()))
 		end),
 		Observer(props.Value):onChange(function()
 			if props.Value:get() ~= sliderValue:get() then
@@ -90,9 +66,12 @@ local function sliderPropertyField(props: props)
 				Step = props.Step,
 				BarHeight = UDim.new(0, 6),
 				HandleSize = UDim2.new(0, 12, 0, 12),
-				OnDrag = function(isDragging)
+				OnValueChanged = function(value)
+					sliderValue:set(value)
+				end,
+				OnDrag = function(isDragging, value)
 					if not isDragging then
-						props.Value:set(sliderValue:get())
+						props.Value:set(value)
 					end
 				end,
 			}),
@@ -111,9 +90,23 @@ local function sliderPropertyField(props: props)
 					},
 				},
 				Size = UDim2.new(0, 28, 0, 20),
-				Text = visibleTextValue,
+				Text = textValue,
 				OnFocusLost = function(text)
-					textValue:set(text)
+					-- filter value, then propagate to slider
+					local value = tonumber(text)
+
+					if not value then
+						textValue:set(tostring(sliderValue:get()))
+						return
+					end
+
+					if value < props.Min then
+						value = props.Min
+					elseif value > props.Max then
+						value = props.Max
+					end
+
+					sliderValue:set(value)
 				end,
 			}),
 		},

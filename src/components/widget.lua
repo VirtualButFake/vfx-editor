@@ -58,6 +58,18 @@ local function pluginWidget(props: props)
 
 	if typeof(props.Enabled) == "table" and props.Enabled.kind == "Value" then
 		props.Enabled:set(newWidget.Enabled)
+
+		local connections
+		connections = {
+			newWidget:GetPropertyChangedSignal("Enabled"):Connect(function()
+				props.Enabled:set(newWidget.Enabled)
+			end),
+			newWidget.Destroying:Connect(function()
+				for _, connection in ipairs(connections) do
+					connection:Disconnect()
+				end
+			end),
+		}
 	end
 
 	return Hydrate(newWidget)(props)

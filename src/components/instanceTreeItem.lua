@@ -33,8 +33,8 @@ type props = {
 	Depth: number,
 	MaxDepth: number,
 	TreeContext: {
-		Children: { Instance },
-		Lines: { [number]: string },
+		Children: fusion.Value<{ Instance }>,
+		Lines: fusion.Value<{ [number]: string }>,
 	}?,
 }
 local TREE_TAB_SIZE = 24
@@ -47,40 +47,53 @@ local ALLOWED_CLASSNAMES = {
 
 local function instanceTreeItem(props: props)
 	local useColor = theme:get("InstanceTreeItem", "gray", "default", "Base")
-	local lineState = {}
-	local cascadingLines = {}
+	local cascadingLines = Value({})
+	local lineState = Value({})
 
+	local updateLineStateObservers
 	if props.TreeContext then
-		local selfIndex = table.find(props.TreeContext.Children, props.Instance)
+		local function updateLineState()
+			local selfIndex = table.find(props.TreeContext.Children:get(false), props.Instance)
 
-		if selfIndex then
-			local isLastChild = selfIndex == #props.TreeContext.Children
-			local isFirstChild = selfIndex == 1
+			if selfIndex then
+				local isLastChild = selfIndex == #props.TreeContext.Children:get(false)
+				local isFirstChild = selfIndex == 1
 
-			if not isLastChild then
-				table.insert(lineState, isFirstChild and "StartVertical" or "Vertical")
-			else
-				table.insert(lineState, "Horizontal")
-				table.insert(lineState, "HalfVertical")
+				local state = {}
+
+				if not isLastChild then
+					table.insert(state, isFirstChild and "StartVertical" or "Vertical")
+				else
+					table.insert(state, "Horizontal")
+					table.insert(state, "HalfVertical")
+				end
+
+				if not isLastChild and not isFirstChild then
+					table.insert(state, "Horizontal")
+				end
+
+				if isFirstChild then
+					table.insert(state, "Horizontal")
+					table.insert(state, isLastChild and "HalfVertical" or "StartVertical")
+				end
+
+				lineState:set(state)
+
+				local lineContext = table.clone(props.TreeContext.Lines:get(false))
+
+				if not isLastChild then
+					lineContext[props.Depth] = { "Vertical" }
+				end
+
+				cascadingLines:set(lineContext)
 			end
-
-			if not isLastChild and not isFirstChild then
-				table.insert(lineState, "Horizontal")
-			end
-
-			if isFirstChild then
-				table.insert(lineState, "Horizontal")
-				table.insert(lineState, isLastChild and "HalfVertical" or "StartVertical")
-			end
-
-			local lineContext = table.clone(props.TreeContext.Lines)
-
-			if not isLastChild then
-				lineContext[props.Depth] = { "Vertical" }
-			end
-
-			cascadingLines = lineContext
 		end
+
+		updateLineStateObservers = {
+			Observer(props.TreeContext.Children):onChange(updateLineState),
+			Observer(props.TreeContext.Lines):onChange(updateLineState),
+		}
+		updateLineState()
 	end
 
 	local function makeLine(type: string): GuiObject?
@@ -144,12 +157,6 @@ local function instanceTreeItem(props: props)
 
 	local children = Value(props.Instance:GetChildren())
 
-	local childAddedConnection = props.Instance.ChildAdded:Connect(function(child)
-		local newChildren = children:get()
-		table.insert(newChildren, child)
-		children:set(newChildren)
-	end)
-
 	return New("Frame")({
 		Name = "InstanceTreeItem",
 		AutomaticSize = Enum.AutomaticSize.Y,
@@ -157,7 +164,17 @@ local function instanceTreeItem(props: props)
 		Size = UDim2.new(1, 0, 0, 0),
 		[Cleanup] = {
 			onNameChanged,
-			childAddedConnection,
+			updateLineStateObservers,
+			props.Instance.ChildAdded:Connect(function(child)
+				local newChildren = children:get()
+				table.insert(newChildren, child)
+				children:set(newChildren, true)
+			end),
+			props.Instance.ChildRemoved:Connect(function(child)
+				local newChildren = children:get()
+				table.remove(newChildren, table.find(newChildren, child))
+				children:set(newChildren, true)
+			end),
 		},
 		[Children] = {
 			New("UIListLayout")({
@@ -176,24 +193,28 @@ local function instanceTreeItem(props: props)
 						BackgroundTransparency = 1,
 						Size = UDim2.new(0, props.Depth * TREE_TAB_SIZE, 1, 0),
 						[Children] = {
-							if #lineState > 0
-								then New("Frame")({
-									Name = tostring(props.Depth),
-									BackgroundTransparency = 1,
-									Position = UDim2.new(
-										0,
-										math.clamp((props.Depth - 1) * TREE_TAB_SIZE, 0, math.huge) + 8,
-										0,
-										0
-									),
-									Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
-									[Children] = {
-										ForPairs(lineState, function(index, value)
-											return index, makeLine(value)
-										end, Clean),
-									},
-								})
-								else nil,
+							Computed(function()
+								if #lineState:get() > 0 then
+									return New("Frame")({
+										Name = tostring(props.Depth),
+										BackgroundTransparency = 1,
+										Position = UDim2.new(
+											0,
+											math.clamp((props.Depth - 1) * TREE_TAB_SIZE, 0, math.huge) + 8,
+											0,
+											0
+										),
+										Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
+										[Children] = {
+											ForPairs(lineState, function(index, value)
+												return index, makeLine(value)
+											end, Clean),
+										},
+									})
+								end
+
+								return nil
+							end, Clean),
 							ForPairs(cascadingLines, function(depth, states)
 								if depth == props.Depth then
 									return depth, nil
@@ -339,11 +360,17 @@ local function instanceTreeItem(props: props)
 											Depth = props.Depth + 1,
 											MaxDepth = props.MaxDepth,
 											TreeContext = {
-												Children = children:get(),
+												Children = children,
 												Lines = cascadingLines,
 											},
 										})
-								end, Clean),
+								end, function(index, value)
+									local newSubItems = peek(subItems) -- doesnt have to be reactive
+									table.remove(newSubItems, table.find(newSubItems, value))
+									subItems:set(newSubItems)
+
+									Clean(index, value)
+								end),
 							},
 						})
 						else nil,
@@ -393,9 +420,10 @@ local function instanceTreeItem(props: props)
 									Instance = props.Instance,
 									PropertyName = name,
 									Value = usedProcessedProperties[name],
-								}, processedProperties, useColor)
+								}, useColor, processedProperties)
 
 								local stateChangedObserver = Observer(usedProcessedProperties[name]):onChange(function()
+									print(`Set {name} to {usedProcessedProperties[name]:get()}`)
 									historyHandler(`Set {name} to {usedProcessedProperties[name]:get()}`, function()
 										if property.set then
 											property.set(props.Instance, usedProcessedProperties[name]:get())
@@ -421,7 +449,10 @@ local function instanceTreeItem(props: props)
 								end
 
 								local propertyLineType = index == 1 and "StartVertical" or "Vertical"
-								local subItemsCount = #peek(subItems)
+
+								local subItemsCount = Computed(function()
+									return #subItems:get()
+								end)
 
 								if renderedProperty then
 									return index,
@@ -461,23 +492,21 @@ local function instanceTreeItem(props: props)
 															),
 															Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
 															[Children] = {
-																ForPairs({
-																	propertyLineType,
-																}, function(idx, value)
+																Computed(function()
 																	local treeContextChildren = props.TreeContext
-																			and props.TreeContext.Children
+																			and props.TreeContext.Children:get()
 																		or {}
 
 																	-- if no treecontext exists or this instance has no children and we are not the last child, render the line
 																	if
 																		not props.TreeContext
-																		or subItemsCount > 0
+																		or subItemsCount:get() > 0
 																			and table.find(
 																				treeContextChildren,
 																				props.Instance
 																			) ~= #treeContextChildren
 																	then
-																		return idx, makeLine(value)
+																		return makeLine(propertyLineType)
 																	end
 
 																	-- if we are the last child, don't render the line (instance is closed before properties)
@@ -485,59 +514,61 @@ local function instanceTreeItem(props: props)
 																		table.find(treeContextChildren, props.Instance)
 																		== #treeContextChildren
 																	then
-																		return idx, nil
+																		return nil
 																	end
 
-																	return idx, makeLine(value)
+																	return makeLine(propertyLineType)
 																end, Clean),
 															},
 														}),
 														-- lines for the sub content, at the same depth as the properties
-														if subItemsCount > 0
-															then New("Frame")({
-																Name = tostring(props.Depth),
-																BackgroundTransparency = 1,
-																Position = UDim2.new(
-																	0,
-																	math.clamp(
-																		props.Depth * TREE_TAB_SIZE,
+														Computed(function()
+															if subItemsCount:get() > 0 then
+																return New("Frame")({
+																	Name = tostring(props.Depth),
+																	BackgroundTransparency = 1,
+																	Position = UDim2.new(
 																		0,
-																		math.huge
-																	) + 8,
-																	0,
-																	0
-																),
-																Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
-																[Children] = {
-																	ForPairs({
-																		propertyLineType,
-																	}, function(idx, value)
-																		-- if we have no idea where we are in the tree, just render the line
-																		if
-																			subItemsCount > 0 or not props.TreeContext
-																		then
-																			return idx, makeLine(value)
-																		end
+																		math.clamp(
+																			props.Depth * TREE_TAB_SIZE,
+																			0,
+																			math.huge
+																		) + 8,
+																		0,
+																		0
+																	),
+																	Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
+																	[Children] = {
+																		Computed(function()
+																			-- if we have no idea where we are in the tree, just render the line
+																			if
+																				subItemsCount:get() > 0
+																				or not props.TreeContext
+																			then
+																				return makeLine(propertyLineType)
+																			end
 
-																		local treeContextChildren =
-																			props.TreeContext.Children
+																			local treeContextChildren =
+																				props.TreeContext.Children:get()
+																			if
+																				table.find(
+																					treeContextChildren,
+																					props.Instance
+																				)
+																				== #treeContextChildren
+																			then
+																				return nil
+																			end
 
-																		-- if we are the last child, don't render the line (instance is closed before properties)
-																		if
-																			table.find(
-																				treeContextChildren,
-																				props.Instance
-																			)
-																			== #treeContextChildren
-																		then
-																			return idx, nil
-																		end
+																			-- if we are the last child, don't render the line (instance is closed before properties)
+																			return makeLine(propertyLineType)
+																		end, Clean),
+																	},
+																})
+															end
 
-																		return idx, makeLine(value)
-																	end, Clean),
-																},
-															})
-															else nil,
+															return nil
+														end, Clean),
 														ForPairs(cascadingLines, function(depth, states)
 															if depth == props.Depth then
 																return depth, nil

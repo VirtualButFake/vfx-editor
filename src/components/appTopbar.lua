@@ -6,9 +6,6 @@ local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local ForPairs = fusion.ForPairs
 
-local tailwind = require("@packages/tailwind")
-local theme = require("@src/theme")
-
 local appTopbarItem = require("@components/appTopbarItem")
 
 type props = {
