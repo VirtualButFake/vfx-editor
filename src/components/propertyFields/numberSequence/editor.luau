@@ -32,6 +32,9 @@ local peek = fusionUtils.peek
 local easingModes = require("./easingModes")
 local grid = require("./grid")
 local graph = require("./graph")
+local handleComponent = require("./handle")
+
+local viewport2D = require("@components/viewport2D")
 
 local theme = require("@src/theme")
 
@@ -86,8 +89,8 @@ local function exportGraph(resolution: number, points: { point })
 				local value = easingModes.bezier.Ease(
 					time,
 					Vector2.new(point1.index, point1.value),
-					Vector2.new(handle1.x, handle1.y),
-					Vector2.new(handle2.x, handle2.y),
+					Vector2.new(handle1.x, handle1.y) + Vector2.new(point1.index, point1.value),
+					Vector2.new(handle2.x, handle2.y) + Vector2.new(point2.index, point2.value),
 					Vector2.new(point2.index, point2.value)
 				)
 
@@ -174,8 +177,7 @@ local function compressPoints(points: { keypoint }): { keypoint }
 			end
 
 			do
-				local distanceToBounds =
-					math.clamp(math.min(1 - points[i - 2].value, points[i - 2].value), 0, 1)
+				local distanceToBounds = math.clamp(math.min(1 - points[i - 2].value, points[i - 2].value), 0, 1)
 				local lastDistanceToBounds = math.clamp(math.min(1 - lastPoint.value, lastPoint.value), 0, 1)
 
 				local envelopeConstrained = math.clamp(points[i - 2].envelope, 0, distanceToBounds)
@@ -223,8 +225,8 @@ local function numberTableToSequence(points: { keypoint })
 		-- 1. the distance (in time) between the points
 		-- 2. the distance (in indices) between the points
 		-- this guarantees that we use the maximum amount of points while retaining the maximum amount of detail
-        -- the caveat with this is that both algorithms limit the amount of points to 20 *per algorithm*, resulting in a slightly higher amount of points
-        -- so to combat this, we compress the data further if we have more than 20 points
+		-- the caveat with this is that both algorithms limit the amount of points to 20 *per algorithm*, resulting in a slightly higher amount of points
+		-- so to combat this, we compress the data further if we have more than 20 points
 
 		local newKeypoints = { keypoints[1] }
 		local lastKeypoint = keypoints[1]
@@ -325,14 +327,14 @@ local function numberTableToSequence(points: { keypoint })
 			local finalKeypoints = { newKeypoints[1], newKeypoints[#newKeypoints] }
 
 			for i = 1, 18 do
-                table.insert(finalKeypoints, slopes[i].point)
+				table.insert(finalKeypoints, slopes[i].point)
 			end
 
-            table.sort(finalKeypoints, function(a, b)
-                return a.index < b.index
-            end)
+			table.sort(finalKeypoints, function(a, b)
+				return a.index < b.index
+			end)
 
-            newKeypoints = finalKeypoints
+			newKeypoints = finalKeypoints
 		end
 
 		keypoints = newKeypoints
@@ -383,9 +385,14 @@ type props = {
 	Instance: Instance,
 }
 
-local GRAPH_UPDATE_HZ = 20
+local GRAPH_UPDATE_HZ = 45
 local GRAPH_RESOLUTION_RENDER = 200
 local GRAPH_RESOLUTION_EXPORT = 500
+local LINE_COLOR = Color3.new(0, 0, 0)
+local ENVELOPE_COLOR = Color3.fromRGB(255, 127, 127)
+local HANDLE_COLOR = Color3.fromRGB(255, 50, 50)
+
+local ENVELOPE_SPACING = 0.1
 
 local function numberSequenceEditor(props: props)
 	local useColor = theme:get("NumberSequenceEditor", "gray", "default", "Base")
@@ -406,7 +413,7 @@ local function numberSequenceEditor(props: props)
 
 	local lastGraphUpdate = 0
 
-	local selectedDot = Value(nil)
+	local selectedDot: fusion.Value<{ point }> = Value(nil)
 	local inputTimeText = Value("")
 	local inputValueText = Value("")
 	local inputEnvelopeText = Value("")
@@ -503,6 +510,7 @@ local function numberSequenceEditor(props: props)
 
 	local isContextVisible = Value(false)
 	local isHoveringGraph = Value(false)
+	local isDraggingHandle = Value(false)
 
 	local component, layer
 	component, layer = topLayerProvider.new(New("Frame")({
@@ -555,6 +563,14 @@ local function numberSequenceEditor(props: props)
 							envelope = 0,
 							easingMode = "linear",
 							direction = "InOut",
+							handle1 = {
+								x = -0.1,
+								y = 0,
+							},
+							handle2 = {
+								x = 0.1,
+								y = 0,
+							},
 						})
 
 						local oldPoints = points:get()
@@ -565,6 +581,7 @@ local function numberSequenceEditor(props: props)
 						end)
 
 						points:set(oldPoints)
+						selectedDot:set(newPoint)
 						rerenderGraph()
 						applyChanges()
 					end
@@ -586,9 +603,96 @@ local function numberSequenceEditor(props: props)
 						spacingX = 0.1,
 						spacingY = 0.25,
 					}),
-					graph({
-						points = graphPoints,
-						bounds = {
+					viewport2D({
+						BackgroundColor = LINE_COLOR,
+						Corner = UDim.new(0, 4),
+						Children = {
+							graph({
+								Points = graphPoints,
+								EnvelopeColor = ENVELOPE_COLOR,
+								LineColor = LINE_COLOR,
+								PixelScale = 4,
+								Resolution = 200,
+							}),
+							function(convertToVector, bounds, size)
+								return Computed(function()
+									local usedSelectedDot = selectedDot:get()
+
+									if usedSelectedDot then
+										local usedDot = usedSelectedDot:get()
+										local pointPos = Vector2.new(usedDot.index, usedDot.value)
+
+										return {
+											handleComponent({
+												HandlePosition = pointPos
+													+ Vector2.new(0, math.max(usedDot.envelope, ENVELOPE_SPACING)),
+												PointPosition = pointPos,
+												Color = HANDLE_COLOR,
+											})(convertToVector, bounds, size),
+											handleComponent({
+												HandlePosition = pointPos
+													- Vector2.new(0, math.max(usedDot.envelope, ENVELOPE_SPACING)),
+												PointPosition = pointPos,
+												Color = HANDLE_COLOR,
+											})(convertToVector, bounds, size),
+										}
+									end
+
+									return
+								end, Clean)
+							end,
+							function(convertToVector, bounds, size)
+								return Computed(function()
+									local usedSelectedDot = selectedDot:get()
+									local instances = {}
+
+									if usedSelectedDot then
+										local usedDot = usedSelectedDot:get()
+
+										local dotIndex = table.find(points:get(), usedSelectedDot)
+
+										if dotIndex == nil then
+											return instances
+										end
+
+										local previousPoint = points:get()[dotIndex - 1]
+
+										local pointValue = Vector2.new(usedDot.index, usedDot.value)
+
+										if
+											usedDot.handle1
+											and previousPoint
+											and previousPoint:get().easingMode == "bezier"
+										then
+											table.insert(
+												instances,
+												handleComponent({
+													HandlePosition = Vector2.new(usedDot.handle1.x, usedDot.handle1.y)
+														+ pointValue,
+													PointPosition = pointValue,
+													Color = HANDLE_COLOR,
+												})(convertToVector, bounds, size)
+											)
+										end
+
+										if usedDot.handle2 and usedDot.easingMode == "bezier" then
+											table.insert(
+												instances,
+												handleComponent({
+													HandlePosition = Vector2.new(usedDot.handle2.x, usedDot.handle2.y)
+														+ pointValue,
+													PointPosition = pointValue,
+													Color = HANDLE_COLOR,
+												})(convertToVector, bounds, size)
+											)
+										end
+									end
+
+									return instances
+								end, Clean)
+							end,
+						},
+						Bounds = {
 							x = {
 								min = 0,
 								max = 1,
@@ -598,17 +702,237 @@ local function numberSequenceEditor(props: props)
 								max = 1,
 							},
 						},
-						cornerRadius = 4,
-						envelopeColor = Color3.fromRGB(255, 127, 127),
-						lineColor = Color3.fromRGB(0, 0, 0),
-						pxScale = 2,
-						resolution = 100,
+						Size = UDim2.new(1, 0, 1, 0),
 					}),
 					New("Frame")({
 						Name = "GraphPoints",
 						BackgroundTransparency = 1,
 						Size = UDim2.new(1, 0, 1, 0),
 						[Children] = {
+							ForPairs({ -1, 1 }, function(index, value)
+								local handle = Value(nil)
+								local isHovering = Value(false)
+								local isDragging = Value(false)
+
+								return index,
+									New("Frame")({
+										Name = "EnvelopeHandle",
+										AnchorPoint = Vector2.new(0.5, 0.5),
+										BackgroundTransparency = 1,
+										Position = Computed(function()
+											local usedSelectedDot = selectedDot:get()
+
+											if usedSelectedDot then
+												usedSelectedDot = usedSelectedDot:get()
+
+												local envelopeEnd = usedSelectedDot.value
+													+ (math.max(usedSelectedDot.envelope, ENVELOPE_SPACING)) * value
+
+												return UDim2.new(usedSelectedDot.index, 0, 1 - envelopeEnd, 0)
+											end
+
+											return UDim2.new(0, 0, 0, 0)
+										end),
+										Size = UDim2.new(0, 10, 0, 10),
+										Visible = Computed(function()
+											local usedSelectedDot = selectedDot:get()
+
+											if usedSelectedDot then
+												return true
+											end
+
+											return false
+										end),
+										[Ref] = handle,
+										[Event("MouseEnter")] = function()
+											isHovering:set(true)
+										end,
+										[Event("MouseLeave")] = function()
+											isHovering:set(false)
+										end,
+										[Children] = {
+											Computed(function()
+												if handle:get() == nil then
+													return
+												end
+
+												return inputCollector({
+													ReferenceObject = handle:get(),
+													Visible = Computed(function()
+														return isHovering:get() or isDragging:get()
+													end),
+													OnMouseButton1Changed = function(pressed)
+														isDragging:set(pressed)
+														isDraggingHandle:set(pressed)
+
+														if not pressed then
+															applyChanges()
+														end
+													end,
+													OnMouseMove = function(mousePosition)
+														if not isDragging:get() then
+															return
+														end
+
+														local relativePosition = mousePosition
+															- graphContainer:get().AbsolutePosition
+														local verticalProgress = 1
+															- math.clamp(
+																relativePosition.Y / graphContainer:get().AbsoluteSize.Y,
+																0,
+																1
+															)
+
+														local usedSelectedDot = selectedDot:get()
+
+														if usedSelectedDot then
+															local dotData = usedSelectedDot:get()
+															local diff = math.abs(dotData.value - verticalProgress)
+															local distanceToBounds = math.clamp(
+																math.min(1 - dotData.value, dotData.value),
+																0,
+																1
+															)
+
+															dotData.envelope = math.clamp(diff, 0, distanceToBounds)
+
+															usedSelectedDot:set(dotData)
+															inputEnvelopeText:set(math.clamp(dotData.envelope, 0, 1))
+															rerenderGraph()
+														end
+													end,
+												})
+											end),
+										},
+									})
+							end, Clean),
+							ForPairs({ 1, 2 }, function(index, value)
+								local HANDLE_INDEX = "handle" .. tostring(value)
+
+								local handle = Value(nil)
+								local isHovering = Value(false)
+								local isDragging = Value(false)
+
+								return index,
+									New("Frame")({
+										Name = "BezierHandle" .. tostring(value),
+										AnchorPoint = Vector2.new(0.5, 0.5),
+										BackgroundTransparency = 1,
+										Position = Computed(function()
+											local usedSelectedDot = selectedDot:get()
+
+											if usedSelectedDot then
+												usedSelectedDot = usedSelectedDot:get()
+
+												if usedSelectedDot[HANDLE_INDEX] then
+													return UDim2.new(
+														usedSelectedDot[HANDLE_INDEX].x + usedSelectedDot.index,
+														0,
+														1 - usedSelectedDot[HANDLE_INDEX].y - usedSelectedDot.value,
+														0
+													)
+												end
+											end
+
+											return UDim2.new(0, 0, 0, 0)
+										end),
+										Size = UDim2.new(0, 16, 0, 16),
+										Visible = Computed(function()
+											local usedSelectedDot = selectedDot:get()
+
+											if usedSelectedDot then
+												local usedDot = usedSelectedDot:get()
+
+												local selfIndex = table.find(points:get(), usedSelectedDot)
+
+												if selfIndex == nil then
+													return
+												end
+
+												local previousPoint = points:get()[selfIndex - 1]
+
+												if usedDot[HANDLE_INDEX] ~= nil then
+													if
+														value == 1
+														and previousPoint
+														and previousPoint:get().easingMode == "bezier"
+													then
+														return true
+													elseif value == 2 and usedDot.easingMode == "bezier" then
+														return true
+													end
+												end
+											end
+
+											return false
+										end),
+										[Ref] = handle,
+										[Event("MouseEnter")] = function()
+											isHovering:set(true)
+										end,
+										[Event("MouseLeave")] = function()
+											isHovering:set(false)
+										end,
+										[Children] = {
+											Computed(function()
+												if handle:get() == nil then
+													return
+												end
+
+												-- this doesn't actually pass anything to the computed, the computed purely exists so we can await the ref
+												return inputCollector({
+													ReferenceObject = handle:get(),
+													Visible = Computed(function()
+														return isHovering:get() or isDragging:get()
+													end),
+													OnMouseButton1Changed = function(pressed)
+														isDragging:set(pressed)
+														isDraggingHandle:set(pressed)
+
+														if not pressed then
+															applyChanges()
+														end
+													end,
+													OnMouseMove = function(mousePosition)
+														if not isDragging:get() then
+															return
+														end
+
+														local relativePosition = mousePosition
+															- graphContainer:get().AbsolutePosition
+														local horizontalProgress = math.clamp(
+															relativePosition.X / graphContainer:get().AbsoluteSize.X,
+															0,
+															1
+														)
+														local verticalProgress = 1
+															- math.clamp(
+																relativePosition.Y / graphContainer:get().AbsoluteSize.Y,
+																0,
+																1
+															)
+
+														local usedSelectedDot = selectedDot:get()
+
+														if usedSelectedDot then
+															local dotData = usedSelectedDot:get()
+
+															dotData[HANDLE_INDEX].x = math.clamp(
+																horizontalProgress - dotData.index,
+																value - 2,
+																value - 1
+															)
+															dotData[HANDLE_INDEX].y = verticalProgress - dotData.value
+
+															usedSelectedDot:set(dotData)
+															rerenderGraph()
+														end
+													end,
+												})
+											end),
+										},
+									})
+							end, Clean),
 							Computed(function()
 								if isHoveringGraph:get() and #points:get() < 19 then
 									return New("Frame")({
@@ -623,7 +947,8 @@ local function numberSequenceEditor(props: props)
 
 												local mousePosition = layer.state.mousePosition:get()
 
-												local relativePosition = mousePosition - graphContainer:get().AbsolutePosition
+												local relativePosition = mousePosition
+													- graphContainer:get().AbsolutePosition
 												local horizontalProgress = relativePosition.X
 													/ graphContainer:get().AbsoluteSize.X
 												local verticalProgress = relativePosition.Y
@@ -637,13 +962,14 @@ local function numberSequenceEditor(props: props)
 										Size = UDim2.new(0, 16, 0, 16),
 										Visible = Computed(function()
 											-- if we're within 0.01 of anmother point, don't show the point
-											if graphContainer:get() == nil then
+											if graphContainer:get() == nil or isDraggingHandle:get() then
 												return false
 											end
 
 											local mousePosition = layer.state.mousePosition:get()
 
-											local relativePosition = mousePosition - graphContainer:get().AbsolutePosition
+											local relativePosition = mousePosition
+												- graphContainer:get().AbsolutePosition
 											local horizontalProgress = relativePosition.X
 												/ graphContainer:get().AbsoluteSize.X
 											local verticalProgress = 1
@@ -667,7 +993,7 @@ local function numberSequenceEditor(props: props)
 												Name = "GraphDot",
 												AnchorPoint = Vector2.new(0.5, 0.5),
 												BackgroundColor3 = Computed(function()
-													return useColor("DotColor").color
+													return useColor("Dot").color
 												end),
 												BackgroundTransparency = 0.5,
 												Position = UDim2.new(0.5, 0, 0.5, 0),
@@ -700,6 +1026,7 @@ local function numberSequenceEditor(props: props)
 										Callback = function()
 											local newValue = table.clone(value:get())
 											newValue.easingMode = easingMode
+
 											value:set(newValue)
 
 											applyChanges()
@@ -759,7 +1086,7 @@ local function numberSequenceEditor(props: props)
 								end
 
 								local graphPoint = contextMenu(
-									New("Frame")({
+									New("ImageButton")({
 										Name = "GraphPoint",
 										AnchorPoint = Vector2.new(0.5, 0.5),
 										BackgroundTransparency = 1,
@@ -768,12 +1095,14 @@ local function numberSequenceEditor(props: props)
 											return UDim2.new(usedValue.index, 0, 1 - usedValue.value, 0)
 										end),
 										Size = UDim2.new(0, 16, 0, 16),
-										[Event("MouseLeave")] = function()
-											isHovering:set(false)
+										[Event("MouseButton1Click")] = function()
+											selectedDot:set(value)
 										end,
 										[Event("MouseEnter")] = function()
-											selectedDot:set(value)
 											isHovering:set(true)
+										end,
+										[Event("MouseLeave")] = function()
+											isHovering:set(false)
 										end,
 										[Children] = {
 											New("Frame")({
@@ -782,10 +1111,10 @@ local function numberSequenceEditor(props: props)
 												BackgroundColor3 = Tween(
 													Computed(function()
 														if selectedDot:get() == value then
-															return useColor("SelectedDotColor").color
+															return useColor("SelectedDot").color
 														end
 
-														return useColor("DotColor").color
+														return useColor("Dot").color
 													end),
 													TweenInfo.new(
 														0.3,
@@ -829,6 +1158,10 @@ local function numberSequenceEditor(props: props)
 												},
 												{
 													Label = "Direction",
+													Disabled = Computed(function()
+														return value:get().easingMode == "linear"
+															or value:get().easingMode == "bezier"
+													end),
 													Options = {
 														easingDirectionOptions,
 													},
@@ -842,6 +1175,10 @@ local function numberSequenceEditor(props: props)
 														table.remove(oldPoints, index)
 														points:set(oldPoints)
 
+														if selectedDot:get() == value then
+															selectedDot:set(nil)
+														end
+
 														rerenderGraph()
 														applyChanges()
 													end,
@@ -854,7 +1191,7 @@ local function numberSequenceEditor(props: props)
 								inputCollector({
 									ReferenceObject = graphPoint,
 									Visible = Computed(function()
-										return (isHovering:get() or isDragging:get()) and not isThisContextVisible:get()
+										return isHovering:get() or isDragging:get() and not isThisContextVisible:get()
 									end),
 									OnInputEnded = function(userInput)
 										if userInput.UserInputType == Enum.UserInputType.MouseButton2 then
@@ -876,13 +1213,13 @@ local function numberSequenceEditor(props: props)
 											end
 										end
 									end,
-									OnMouseButton1Changed = function(pressing, wasHover)
-										if wasHover then
-											return
-										end
-
+									OnMouseButton1Changed = function(pressing)
 										if pressing then
 											isDragging:set(true)
+
+											if selectedDot:get() ~= value then
+												selectedDot:set(value)
+											end
 										else
 											isDragging:set(false)
 
@@ -915,8 +1252,19 @@ local function numberSequenceEditor(props: props)
 												- clampedPosition.Y / graphContainer:get().AbsoluteSize.Y
 
 											local newValue = table.clone(value:get())
-											newValue.index = horizontalProgress
+											newValue.index = math.clamp(horizontalProgress, 0.001, 0.999)
 											newValue.value = verticalProgress
+
+											if newValue.envelope > 0 then
+												local distanceToBounds =
+													math.clamp(math.min(1 - newValue.value, newValue.value), 0, 1)
+												newValue.envelope = math.clamp(newValue.envelope, 0, distanceToBounds)
+											end
+
+											-- not necessary, but this is so the ui feels more responsive
+											inputTimeText:set(tostring(newValue.index))
+											inputValueText:set(tostring(newValue.value))
+											inputEnvelopeText:set(tostring(newValue.envelope))
 
 											value:set(newValue)
 
@@ -1088,7 +1436,7 @@ local function numberSequenceEditor(props: props)
 										local newDot = table.clone(dot:get())
 										newDot.envelope = math.clamp(newEnvelope, 0, 1)
 
-										inputEnvelopeText:set(tostring(newDot.envelope))
+										inputEnvelopeText:set(tostring(newDot.envelope), true)
 										dot:set(newDot, true)
 
 										rerenderGraph()
@@ -1115,6 +1463,11 @@ local function numberSequenceEditor(props: props)
 								if index then
 									table.remove(oldPoints, index)
 									points:set(oldPoints)
+
+									if selectedDot:get() == dot then
+										selectedDot:set(nil)
+									end
+
 									rerenderGraph()
 									applyChanges()
 								end

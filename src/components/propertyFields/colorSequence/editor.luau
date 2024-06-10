@@ -403,7 +403,7 @@ local function editor(props: props)
 							ReferenceObject = timelineButton,
 							Visible = meetsVisibilityCriteria,
 							OnMouseMove = function(position)
-								mousePosition:set(Vector2.new(position.X, position.Y))
+								mousePosition:set(position)
 
 								isMouseInRange:set(
 									(mousePosition:get() - timelineButton.AbsolutePosition).Magnitude < 96
@@ -553,7 +553,7 @@ local function editor(props: props)
 		ReferenceObject = colorFrame:get(),
 		Visible = isHoveringColor,
 		OnMouseMove = function(position)
-			mousePosition:set(Vector2.new(position.X, position.Y))
+			mousePosition:set(position)
 		end,
 		OnClick = function(wasHovering)
 			if not colorFrame:get() or not isHoveringColor:get() or wasHovering then

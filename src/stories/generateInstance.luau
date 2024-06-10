@@ -120,7 +120,7 @@ return function()
 				envelope = 0,
 				easingMode = "linear",
 				direction = "Out",
-				handle2 = { x = 0, y = 0.5 },
+				handle2 = { x = 0.1, y = 0 },
 			},
 			--[[{
 				index = 0.3,
@@ -144,7 +144,7 @@ return function()
 				envelope = 0,
 				direction = "Out",
 				easingMode = "linear",
-				handle1 = { x = 1, y = 0.5 },
+				handle1 = { x = -0.1, y = 0 },
 			},
 		})
 	)

@@ -1,5 +1,5 @@
 diff --git a/studiocomponents/build/components/common/input.lua b/studiocomponents/build/components/common/input.lua
-index f3eca38..c997a66 100644
+index bccc406..7404907 100644
 --- a/studiocomponents/build/components/common/input.lua
 +++ b/studiocomponents/build/components/common/input.lua
 @@ -1,4 +1,5 @@
@@ -17,25 +17,3 @@ index f3eca38..c997a66 100644
  local pluginMouse = plugin and plugin:GetMouse() or nil
  
  type props = {
-@@ -35,8 +36,8 @@ type props = {
- 	Disabled: fusion.CanBeState<boolean>?,
- 	Placeholder: fusion.CanBeState<string>?,
- 	TextSize: fusion.CanBeState<number>?,
--	Icon: (string? )| baseIcon.icon?,
--	TrailingIcon: (string? )| baseIcon.icon?,
-+	Icon: string? | baseIcon.icon?,
-+	TrailingIcon: string? | baseIcon.icon?,
- 	Text: fusion.CanBeState<string>?,
- 	TextAlignment: fusion.CanBeState<Enum.TextXAlignment>?,
- 	BlockMouseIcon: fusion.CanBeState<boolean>?,
-@@ -45,8 +46,8 @@ type props = {
- 	OnFocusLost: ((text: string, enterPressed: boolean, input: InputObject) -> nil)?,
- 	Slots: {
- 		Left: ((color: theme.useColorFunction) -> fusion.CanBeState<{ GuiObject }>)?,
--		Right: ((color: theme.useColorFunction) -> fusion.CanBeState<{ GuiObject }>)?	
--}?
-+		Right: ((color: theme.useColorFunction) -> fusion.CanBeState<{ GuiObject }>)?,
-+	}?,
- }
- 
- local function input(props: props): Frame
