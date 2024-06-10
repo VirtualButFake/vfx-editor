@@ -42,10 +42,10 @@ class.properties = {
 		name = "Color",
 		render = colorSequence,
 	},
-    {
-        name = "Transparency",
-        render = numberSequence,
-    }
+	{
+		name = "Transparency",
+		render = numberSequence,
+	},
 }
 
 return class

@@ -47,7 +47,7 @@ local function bezierHandle(props: props)
 		line.Color = props.Color
 		line.Size = Vector3.new(distance, lineSize, circleSize)
 		line.CFrame = CFrame.new(inbetweenPosition) * CFrame.Angles(0, 0, rot)
-        line.Parent = circle
+		line.Parent = circle
 
 		return circle
 	end

@@ -105,9 +105,9 @@ local function viewport2D(props: props)
 			New("WorldModel")({
 				[Children] = {
 					ForValues(props.Children, function(value)
-                        if containerSize:get() == nil then
-                            return
-                        end
+						if containerSize:get() == nil then
+							return
+						end
 
 						return use(value)(function(position)
 							local rangeWidth = use(props.Bounds.x.max) - use(props.Bounds.x.min)
