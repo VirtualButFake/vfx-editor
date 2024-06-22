@@ -8,16 +8,16 @@ local text = studioComponents.base.text
 
 type props = {
 	Size: fusion.CanBeState<UDim2>,
-	Position: fusion.CanBeState<UDim2>,
-	Property: string,
+	Position: fusion.CanBeState<UDim2>?,
+	OptionName: string,
 	Content: fusion.CanBeState<{ GuiObject }>,
 }
 
-local function instanceProperty(props: props)
+local function listOption(props: props)
 	local useColor = theme:get("InstanceTreeItem", "gray", "default", "Base")
 
 	return New("Frame")({
-		Name = "PropertyContainer",
+		Name = "ListOption",
 		Size = props.Size,
 		Position = props.Position,
 		BackgroundTransparency = 1,
@@ -31,12 +31,12 @@ local function instanceProperty(props: props)
 			}),
 			text({
 				Appearance = useColor("Text", true),
-				Text = props.Property,
+				Text = props.OptionName,
 				Size = UDim2.new(0.5, 0, 0, 20),
 				TextXAlignment = Enum.TextXAlignment.Left,
 			}),
 			New("Frame")({
-				Name = "Property",
+				Name = "ValueContainer",
 				Size = UDim2.new(0.5, 0, 1, 0),
 				BackgroundTransparency = 1,
 				[fusion.Children] = {
@@ -53,4 +53,4 @@ local function instanceProperty(props: props)
 	})
 end
 
-return instanceProperty
+return listOption

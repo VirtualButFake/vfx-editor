@@ -3,13 +3,12 @@ local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local New = fusion.New
 
-local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local Observer = fusion.Observer
 local Value = fusion.Value
 
 local studioComponents = require("@packages/studioComponents")
-local slider = studioComponents.common.slider
+local range = studioComponents.common.range
 local input = studioComponents.common.input
 
 local tailwind = require("@packages/tailwind")
@@ -22,7 +21,7 @@ local function roundDecimals(value: number, decimals: number): number
 end
 
 type props = {
-	Value: fusion.Value<number>,
+	Value: fusion.Value<NumberRange>,
 	LayoutOrder: number,
 	Min: number,
 	Max: number,
@@ -40,14 +39,16 @@ local function sliderPropertyField(props: props)
             return roundDecimals(roundingFunction((value - props.Min) / props.Step) * props.Step + props.Min, 3)
         end
     end
-    
-	local textValue = Value(tostring(roundToStep(props.Value:get())))
+
+	local textValue = Value(
+		`{roundToStep(props.Value:get().Min)}, {roundToStep(props.Value:get().Max)}`
+	)
 	local sliderValue = Value(props.Value:get())
 
 	local connections = {
 		Observer(sliderValue):onChange(function()
 			-- propagate value to text
-			textValue:set(tostring(roundToStep(sliderValue:get())))
+			textValue:set(`{roundToStep(sliderValue:get().Min)}, {roundToStep(sliderValue:get().Max)}`)
 		end),
 		Observer(props.Value):onChange(function()
 			if props.Value:get() ~= sliderValue:get() then
@@ -69,23 +70,30 @@ local function sliderPropertyField(props: props)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 			}),
-			slider({
+			range({
 				Color = "blue",
-				Width = UDim.new(1, -32),
+				Width = UDim.new(1, -48),
 				Min = props.Min,
 				Max = props.Max,
 				Tooltip = true,
-				Value = sliderValue,
+				Value = Computed(function()
+					local value = sliderValue:get()
+					return { value.Min, value.Max }
+				end),
 				LayoutOrder = props.LayoutOrder,
 				Step = props.Step,
 				BarHeight = UDim.new(0, 6),
 				HandleSize = UDim2.new(0, 12, 0, 12),
-				OnValueChanged = function(value)
-					sliderValue:set(value)
+				OnValueChanged = function(index, value)
+					local currentValue = sliderValue:get()
+					sliderValue:set(
+						index == 1 and NumberRange.new(value, currentValue.Max)
+							or NumberRange.new(currentValue.Min, value)
+					)
 				end,
-				OnDrag = function(isDragging, value)
+				OnDrag = function(isDragging, values)
 					if not isDragging then
-						props.Value:set(value)
+						props.Value:set(NumberRange.new(values[1]:get(false), values[2]:get(false)))
 					end
 				end,
 			}),
@@ -103,19 +111,23 @@ local function sliderPropertyField(props: props)
 						Stroke = theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500],
 					},
 				},
-				Size = UDim2.new(0, 28, 0, 20),
+				Size = UDim2.new(0, 48, 0, 20),
 				Text = textValue,
 				OnFocusLost = function(text)
-					-- filter value, then propagate to slider
-					local value = tonumber(text)
+					local values = text:split(",")
 
-					if not value then
-						textValue:set(tostring(roundToStep(sliderValue:get())))
-						return
+					for _, value in ipairs(values) do
+						if not tonumber(value) then
+							local currentSliderValue = sliderValue:get()
+							textValue:set(`{roundToStep(currentSliderValue.Min)}, {roundToStep(currentSliderValue.Max)}`)
+							return
+						end
 					end
 
-					sliderValue:set(value)
-                    props.Value:set(value)
+					local newValue = NumberRange.new(tonumber(values[1]) :: number, tonumber(values[2]) :: number)
+
+					sliderValue:set(newValue)
+					props.Value:set(newValue)
 				end,
 			}),
 		},

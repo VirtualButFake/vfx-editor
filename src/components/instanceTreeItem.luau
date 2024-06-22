@@ -5,6 +5,8 @@ local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local New = fusion.New
+local Out = fusion.Out
+local Ref = fusion.Ref
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
@@ -20,12 +22,14 @@ local button = studioComponents.common.button
 local fusionUtils = require("@packages/fusionUtils")
 local peek = fusionUtils.peek
 
+local tailwind = require("@packages/tailwind")
+
 local theme = require("@src/theme")
 
 local getPropertiesForInstance = require("@src/lib/getPropertiesForInstance")
 local historyHandler = require("@src/lib/historyHandler")
 
-local instanceProperty = require("@src/components/instanceProperty")
+local listOption = require("@src/components/listOption")
 
 type props = {
 	Instance: Instance,
@@ -143,7 +147,7 @@ local function instanceTreeItem(props: props)
 	end
 
 	local instanceName = Value(props.Instance.Name)
-	local instanceProperties = getPropertiesForInstance(props.Instance)
+	local instanceCategories = getPropertiesForInstance(props.Instance)
 
 	local onNameChanged = props.Instance:GetPropertyChangedSignal("Name"):Connect(function()
 		instanceName:set(props.Instance.Name)
@@ -374,7 +378,7 @@ local function instanceTreeItem(props: props)
 							},
 						})
 						else nil,
-					instanceProperties and New("Frame")({
+					instanceCategories and New("Frame")({
 						Name = "Properties",
 						AutomaticSize = Enum.AutomaticSize.Y,
 						BackgroundTransparency = 1,
@@ -390,219 +394,354 @@ local function instanceTreeItem(props: props)
 								SortOrder = Enum.SortOrder.LayoutOrder,
 								VerticalAlignment = Enum.VerticalAlignment.Top,
 							}),
-							ForPairs(instanceProperties, function(index, property)
-								if
-									props.Query:get() ~= ""
-									and not string.find(property.name:lower(), props.Query:get():lower())
-								then
-									return index, nil
-								end
-
-								local name = property.name
-								local processedProperty = property.get and property.get(props.Instance)
-									or props.Instance[name]
-
-								local usedProcessedProperties = peek(processedProperties)
-								local tableUpdated = false
-
-								if usedProcessedProperties[name] ~= nil then
-									usedProcessedProperties[name]:set(processedProperty)
-								else
-									usedProcessedProperties[name] = Value(processedProperty)
-									tableUpdated = true
-								end
-
-								if tableUpdated then
-									processedProperties:set(usedProcessedProperties)
-								end
-
-								local renderedProperty = property.render({
-									Instance = props.Instance,
-									PropertyName = name,
-									Value = usedProcessedProperties[name],
-								}, useColor, processedProperties)
-
-								local stateChangedObserver = Observer(usedProcessedProperties[name]):onChange(function()
-									print(`Set {name} to {usedProcessedProperties[name]:get()}`)
-									historyHandler(`Set {name} to {usedProcessedProperties[name]:get()}`, function()
-										if property.set then
-											property.set(props.Instance, usedProcessedProperties[name]:get())
-										else
-											props.Instance[name] = usedProcessedProperties[name]:get()
-										end
-									end)
-								end)
-
-								local instanceHasProperty = pcall(function()
-									return props.Instance[name] == nil
-								end)
-
-								local propertyChanged
-								if instanceHasProperty then
-									propertyChanged = props.Instance:GetPropertyChangedSignal(name):Connect(function()
-										local value = props.Instance[name]
-
-										if usedProcessedProperties[name]:get() ~= value then
-											usedProcessedProperties[name]:set(props.Instance[name])
-										end
-									end)
-								end
-
+							ForPairs(instanceCategories, function(index, category)
 								local propertyLineType = index == 1 and "StartVertical" or "Vertical"
 
 								local subItemsCount = Computed(function()
 									return #subItems:get()
 								end)
 
-								if renderedProperty then
-									return index,
-										New("Frame")({
-											Name = name,
-											BackgroundTransparency = 1,
-											LayoutOrder = index,
-											Size = UDim2.new(1, 0, 0, 24),
-											[Cleanup] = {
-												stateChangedObserver,
-												propertyChanged,
-											},
-											[Children] = {
-												instanceProperty({
-													Size = UDim2.new(1, -(props.Depth + 1) * TREE_TAB_SIZE, 1, 0),
-													Position = UDim2.new(0, (props.Depth + 1) * TREE_TAB_SIZE, 0, 0),
-													Property = name,
-													Content = renderedProperty,
-												}),
-												New("Frame")({
-													Name = "LineContainer",
-													BackgroundTransparency = 1,
-													Size = UDim2.new(0, props.Depth * TREE_TAB_SIZE, 1, 0),
-													[Children] = {
-														New("Frame")({
-															Name = tostring(props.Depth),
-															BackgroundTransparency = 1,
-															Position = UDim2.new(
-																0,
-																math.clamp(
-																	(props.Depth - 1) * TREE_TAB_SIZE,
-																	0,
-																	math.huge
-																) + 8,
-																0,
-																0
-															),
-															Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
-															[Children] = {
-																Computed(function()
-																	local treeContextChildren = props.TreeContext
-																			and props.TreeContext.Children:get()
-																		or {}
+								local listContentSize = Value(Vector2.new())
+								local showCategory = Value(true)
 
-																	-- if no treecontext exists or this instance has no children and we are not the last child, render the line
-																	if
-																		not props.TreeContext
-																		or subItemsCount:get() > 0
-																			and table.find(
+								return index,
+									New("Frame")({
+										Name = "Category",
+										AutomaticSize = Enum.AutomaticSize.Y,
+										BackgroundTransparency = 1,
+										LayoutOrder = index,
+										Size = UDim2.new(1, 0, 0, 0),
+										[Children] = {
+											New("Frame")({
+												Name = "CategoryHeader",
+												BackgroundTransparency = 1,
+												Position = UDim2.new(
+													0,
+													math.clamp(props.Depth * TREE_TAB_SIZE, 0, math.huge) + 8,
+													0,
+													0
+												),
+												Size = UDim2.new(1, -props.Depth * TREE_TAB_SIZE, 0, 20),
+												[Children] = {
+													New("UIPadding")({
+														PaddingBottom = UDim.new(0, 2),
+														PaddingTop = UDim.new(0, 2),
+													}),
+													New("UIListLayout")({
+														FillDirection = Enum.FillDirection.Horizontal,
+														HorizontalAlignment = Enum.HorizontalAlignment.Left,
+														Padding = UDim.new(0, 4),
+														SortOrder = Enum.SortOrder.LayoutOrder,
+														VerticalAlignment = Enum.VerticalAlignment.Center,
+													}),
+													baseText({
+														Appearance = useColor("SecondaryText", true),
+														Text = {
+															Font = Font.new(
+																peek(theme.global.font).Family,
+																Enum.FontWeight.SemiBold
+															),
+															Label = category.name,
+															TextSize = 14,
+														},
+														AutomaticSize = Enum.AutomaticSize.XY,
+													}),
+													button({
+														Margin = 2,
+														Color = "white",
+														Variant = "ghost",
+														Content = {
+															Computed(function()
+                                                                if showCategory:get() then
+                                                                    return baseIcon({
+                                                                        Icon = {
+                                                                            Name = "chevron-up",
+                                                                            Size = 12,
+                                                                        },
+                                                                        Color = useColor("SecondaryText", true),
+                                                                    })
+                                                                end
+
+																return baseIcon({
+																	Icon = {
+																		Name = "chevron-down",
+																		Size = 12,
+																	},
+																	Color = useColor("SecondaryText", true),
+																})
+															end, Clean),
+														},
+														AutomaticSize = Enum.AutomaticSize.XY,
+														OnClick = function()
+															showCategory:set(not showCategory:get())
+														end,
+													}),
+												},
+											}),
+											New("Frame")({
+												Name = "LineContainer",
+												BackgroundTransparency = 1,
+												Size = Computed(function()
+													if listContentSize:get() == nil or not showCategory:get() then
+														return UDim2.new(0, props.Depth * TREE_TAB_SIZE, 0, 20)
+													end
+
+													return UDim2.new(
+														0,
+														props.Depth * TREE_TAB_SIZE,
+														0,
+														listContentSize:get().Y + 20
+													)
+												end),
+												[Children] = {
+													New("Frame")({
+														Name = tostring(props.Depth),
+														BackgroundTransparency = 1,
+														Position = UDim2.new(
+															0,
+															math.clamp((props.Depth - 1) * TREE_TAB_SIZE, 0, math.huge)
+																+ 8,
+															0,
+															0
+														),
+														Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
+														[Children] = {
+															Computed(function()
+																local treeContextChildren = props.TreeContext
+																		and props.TreeContext.Children:get()
+																	or {}
+
+																-- if no treecontext exists or this instance has no children and we are not the last child, render the line
+																if
+																	not props.TreeContext
+																	or subItemsCount:get() > 0
+																		and table.find(
+																			treeContextChildren,
+																			props.Instance
+																		) ~= #treeContextChildren
+																then
+																	return makeLine(propertyLineType)
+																end
+
+																-- if we are the last child, don't render the line (instance is closed before properties)
+																if
+																	table.find(treeContextChildren, props.Instance)
+																	== #treeContextChildren
+																then
+																	return nil
+																end
+
+																return makeLine(propertyLineType)
+															end, Clean),
+														},
+													}),
+													-- lines for the sub content, at the same depth as the properties
+													Computed(function()
+														if subItemsCount:get() > 0 then
+															return New("Frame")({
+																Name = tostring(props.Depth),
+																BackgroundTransparency = 1,
+																Position = UDim2.new(
+																	0,
+																	math.clamp(
+																		props.Depth * TREE_TAB_SIZE,
+																		0,
+																		math.huge
+																	) + 8,
+																	0,
+																	0
+																),
+																Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
+																[Children] = {
+																	Computed(function()
+																		-- if we have no idea where we are in the tree, just render the line
+																		if
+																			subItemsCount:get() > 0
+																			or not props.TreeContext
+																		then
+																			return makeLine(propertyLineType)
+																		end
+
+																		local treeContextChildren =
+																			props.TreeContext.Children:get()
+																		if
+																			table.find(
 																				treeContextChildren,
 																				props.Instance
-																			) ~= #treeContextChildren
-																	then
+																			)
+																			== #treeContextChildren
+																		then
+																			return nil
+																		end
+
+																		-- if we are the last child, don't render the line (instance is closed before properties)
 																		return makeLine(propertyLineType)
-																	end
+																	end, Clean),
+																},
+															})
+														end
 
-																	-- if we are the last child, don't render the line (instance is closed before properties)
-																	if
-																		table.find(treeContextChildren, props.Instance)
-																		== #treeContextChildren
-																	then
-																		return nil
-																	end
+														return nil
+													end, Clean),
+													ForPairs(cascadingLines, function(depth, states)
+														if depth == props.Depth then
+															return depth, nil
+														end
 
-																	return makeLine(propertyLineType)
-																end, Clean),
-															},
-														}),
-														-- lines for the sub content, at the same depth as the properties
-														Computed(function()
-															if subItemsCount:get() > 0 then
-																return New("Frame")({
-																	Name = tostring(props.Depth),
-																	BackgroundTransparency = 1,
-																	Position = UDim2.new(
+														return depth,
+															New("Frame")({
+																Name = tostring(depth),
+																BackgroundTransparency = 1,
+																Position = UDim2.new(
+																	0,
+																	math.clamp(
+																		(depth - 1) * TREE_TAB_SIZE,
 																		0,
-																		math.clamp(
-																			props.Depth * TREE_TAB_SIZE,
-																			0,
-																			math.huge
-																		) + 8,
-																		0,
-																		0
-																	),
-																	Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
-																	[Children] = {
-																		Computed(function()
-																			-- if we have no idea where we are in the tree, just render the line
-																			if
-																				subItemsCount:get() > 0
-																				or not props.TreeContext
-																			then
-																				return makeLine(propertyLineType)
-																			end
+																		math.huge
+																	) + 8,
+																	0,
+																	0
+																),
+																Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
+																[Children] = {
+																	ForPairs(states, function(idx, value)
+																		return idx, makeLine(value)
+																	end, Clean),
+																},
+															})
+													end, Clean),
+												},
+											}),
+											New("Frame")({
+												Name = "Properties",
+												AutomaticSize = Enum.AutomaticSize.Y,
+												BackgroundTransparency = 1,
+												Position = UDim2.new(0, 0, 0, 20),
+												Size = UDim2.new(1, 0, 0, 0),
+												Visible = showCategory,
+												[Children] = {
+													New("UIListLayout")({
+														FillDirection = Enum.FillDirection.Vertical,
+														Padding = UDim.new(0, 2),
+														SortOrder = Enum.SortOrder.LayoutOrder,
+														VerticalAlignment = Enum.VerticalAlignment.Top,
+														[Out("AbsoluteContentSize")] = listContentSize,
+													}),
+													ForPairs(category.properties, function(idx, property)
+														if
+															props.Query:get() ~= ""
+															and not string.find(
+																property.name:lower(),
+																props.Query:get():lower()
+															)
+														then
+															return idx, nil
+														end
 
-																			local treeContextChildren =
-																				props.TreeContext.Children:get()
-																			if
-																				table.find(
-																					treeContextChildren,
-																					props.Instance
-																				)
-																				== #treeContextChildren
-																			then
-																				return nil
-																			end
+														local name = property.name
+														local processedProperty = property.get
+																and property.get(props.Instance)
+															or props.Instance[name]
 
-																			-- if we are the last child, don't render the line (instance is closed before properties)
-																			return makeLine(propertyLineType)
-																		end, Clean),
-																	},
-																})
-															end
+														local usedProcessedProperties = peek(processedProperties)
+														local tableUpdated = false
 
-															return nil
-														end, Clean),
-														ForPairs(cascadingLines, function(depth, states)
-															if depth == props.Depth then
-																return depth, nil
-															end
+														if usedProcessedProperties[name] ~= nil then
+															usedProcessedProperties[name]:set(processedProperty)
+														else
+															usedProcessedProperties[name] = Value(processedProperty)
+															tableUpdated = true
+														end
 
-															return depth,
+														if tableUpdated then
+															processedProperties:set(usedProcessedProperties)
+														end
+
+														local renderedProperty = property.render({
+															Instance = props.Instance,
+															PropertyName = name,
+															Value = usedProcessedProperties[name],
+														}, useColor, processedProperties)
+
+														local stateChangedObserver = Observer(
+															usedProcessedProperties[name]
+														):onChange(function()
+															print(`Set {name} to {usedProcessedProperties[name]:get()}`)
+															historyHandler(
+																`Set {name} to {usedProcessedProperties[name]:get()}`,
+																function()
+																	if property.set then
+																		property.set(
+																			props.Instance,
+																			usedProcessedProperties[name]:get()
+																		)
+																	else
+																		props.Instance[name] =
+																			usedProcessedProperties[name]:get()
+																	end
+																end
+															)
+														end)
+
+														local instanceHasProperty = pcall(function()
+															return props.Instance[name] == nil
+														end)
+
+														local propertyChanged
+														if instanceHasProperty then
+															propertyChanged = props.Instance
+																:GetPropertyChangedSignal(name)
+																:Connect(function()
+																	local value = props.Instance[name]
+
+																	if usedProcessedProperties[name]:get() ~= value then
+																		usedProcessedProperties[name]:set(
+																			property.get
+																					and property.get(props.Instance)
+																				or props.Instance[name]
+																		)
+																	end
+																end)
+														end
+
+														if renderedProperty then
+															return idx,
 																New("Frame")({
-																	Name = tostring(depth),
+																	Name = name,
 																	BackgroundTransparency = 1,
-																	Position = UDim2.new(
-																		0,
-																		math.clamp(
-																			(depth - 1) * TREE_TAB_SIZE,
-																			0,
-																			math.huge
-																		) + 8,
-																		0,
-																		0
-																	),
-																	Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
+																	LayoutOrder = idx,
+																	Size = UDim2.new(1, 0, 0, 24),
+																	[Cleanup] = {
+																		stateChangedObserver,
+																		propertyChanged,
+																	},
 																	[Children] = {
-																		ForPairs(states, function(idx, value)
-																			return idx, makeLine(value)
-																		end, Clean),
+																		listOption({
+																			Size = UDim2.new(
+																				1,
+																				-(props.Depth + 1) * TREE_TAB_SIZE,
+																				1,
+																				0
+																			),
+																			Position = UDim2.new(
+																				0,
+																				(props.Depth + 1) * TREE_TAB_SIZE,
+																				0,
+																				0
+																			),
+																			OptionName = name,
+																			Content = renderedProperty,
+																		}),
 																	},
 																})
-														end, Clean),
-													},
-												}),
-											},
-										})
-								end
+														end
 
-								return index, nil
+														return
+													end, Clean),
+												},
+											}),
+										},
+									})
 							end, Clean),
 						},
 					}),

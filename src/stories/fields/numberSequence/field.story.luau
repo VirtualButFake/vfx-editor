@@ -4,7 +4,7 @@ local storyBase = studioComponents.utility.storyBase
 local fusion = require("@packages/fusion")
 local Value = fusion.Value
 
-local instanceProperty = require("@components/instanceProperty")
+local listOption = require("@components/listOption")
 local numberSequence = require("@components/propertyFields/numberSequence")
 
 local theme = require("@src/theme")
@@ -19,10 +19,10 @@ return {
 
 		instance.Parent = workspace
 
-		local component = instanceProperty({
+		local component = listOption({
 			Size = UDim2.new(0, 256, 0, 48),
 			Position = UDim2.new(0, 0, 0, 0),
-			Property = PROPERTY_NAME,
+			OptionName = PROPERTY_NAME,
 			Content = {
 				numberSequence({
 					Instance = instance,

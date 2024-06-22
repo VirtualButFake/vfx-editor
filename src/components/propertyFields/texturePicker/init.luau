@@ -1,0 +1,139 @@
+local HttpService = game:GetService("HttpService")
+
+local fusion = require("@packages/fusion")
+local Children = fusion.Children
+local Cleanup = fusion.Cleanup
+
+local Clean = fusion.cleanup
+local Computed = fusion.Computed
+local Value = fusion.Value
+
+local studioComponents = require("@packages/studioComponents")
+local button = studioComponents.common.button
+
+local fusionUtils = require("@packages/fusionUtils")
+local topLayerProvider = fusionUtils.topLayerProvider
+
+local widget = require("@components/widget")
+local editor = require("./editor")
+
+local settingsManager = require("@src/lib/settingsManager")
+
+type props = {
+	Instance: Instance,
+	PropertyName: string,
+	Value: fusion.Value<{
+		Texture: string,
+		FlipbookLayout: Enum.ParticleFlipbookLayout,
+	}>,
+	LayoutOrder: number,
+}
+
+local function numberSequencePropertyField(props: props)
+	local isWidgetEnabled = Value(false)
+	local wasEnabled = false
+	local lastReturn = nil
+
+	local textures: fusion.Value<editor.textureList>? = settingsManager.getReactive("textures")
+
+	local texturePath = Computed(function()
+		local data = props.Value:get()
+		local id = data and data.Texture
+
+		if textures and textures:get() then
+			local function iterate(textureList: editor.textureList, path: { string }): { string }?
+				for key, texture in pairs(textureList) do
+					if texture.id == nil then
+						local result = iterate(texture.content, { unpack(path), key })
+
+						if result then
+							return result
+						end
+					elseif texture.id == id then
+						return { unpack(path), texture.name }
+					end
+				end
+
+				return nil
+			end
+
+			return iterate(textures:get(), {})
+		end
+
+		return nil
+	end)
+
+	local createdWidget = widget({
+		Name = `Texture Picker ({props.Instance}.{props.PropertyName})`,
+		Id = HttpService:GenerateGUID(),
+		InitialDockTo = Enum.InitialDockState.Float,
+		InitialEnabled = false,
+		ForceInitialEnabled = true,
+		FloatingSize = Vector2.new(575, 408),
+		MinimumSize = Vector2.new(400, 300),
+		Enabled = isWidgetEnabled,
+		[Children] = {
+			Computed(function()
+				local widgetEnabled = isWidgetEnabled:get()
+
+				if widgetEnabled and not wasEnabled then
+					wasEnabled = true
+
+					lastReturn = ({
+						topLayerProvider.new(editor({
+							Value = props.Value,
+							Instance = props.Instance,
+							IsSelectingImage = true,
+							Path = texturePath,
+						})),
+					})[1]
+				end
+
+				if not widgetEnabled then
+					wasEnabled = false
+				end
+
+				return { lastReturn }
+			end, Clean),
+		},
+	})
+
+	local imageButton = button({
+		Color = "white",
+		Variant = "solid",
+		Icon = {
+			Name = "image",
+			Size = 16,
+		},
+		ButtonText = Computed(function()
+			local path = texturePath:get()
+
+			if not props.Value:get() or props.Value:get().Texture == "" then
+				return "None"
+			end
+
+			if not path then
+				return "Unknown"
+			end
+
+			return path[#path]
+		end),
+		Margin = 2,
+		Size = UDim2.new(0, 16, 0, 16),
+		LayoutOrder = props.LayoutOrder,
+		OnClick = function()
+			isWidgetEnabled:set(true)
+		end,
+		[Cleanup] = {
+			function()
+				-- https://devforum.roblox.com/t/2853087
+				isWidgetEnabled:set(false)
+				createdWidget:Destroy()
+			end,
+		},
+	})
+
+	return imageButton
+end
+
+return numberSequencePropertyField

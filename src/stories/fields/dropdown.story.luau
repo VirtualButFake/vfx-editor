@@ -4,7 +4,7 @@ local storyBase = studioComponents.utility.storyBase
 local fusion = require("@packages/fusion")
 local Value = fusion.Value
 
-local instanceProperty = require("@components/instanceProperty")
+local listOption = require("@components/listOption")
 local dropdown = require("@components/propertyFields/dropdown")
 
 local instance = Instance.new("Part")
@@ -14,10 +14,10 @@ local PROPERTY_NAME = "Shape"
 return {
 	summary = "Dropdown property field",
 	story = storyBase(function(parent)
-		local component = instanceProperty({
+		local component = listOption({
 			Size = UDim2.new(0, 256, 0, 48),
 			Position = UDim2.new(0, 0, 0, 0),
-			Property = PROPERTY_NAME,
+			OptionName = PROPERTY_NAME,
 			Content = {
 				dropdown({
 					Instance = instance,

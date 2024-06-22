@@ -4,8 +4,6 @@ local studioComponents = require("@packages/studioComponents")
 local checkbox = studioComponents.common.checkbox
 
 type props = {
-	Instance: Instance,
-	PropertyName: string,
 	Value: fusion.Value<boolean>,
 	LayoutOrder: number,
 }

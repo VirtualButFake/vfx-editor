@@ -42,6 +42,6 @@ if fs.isDir("Packages") then
 	})
 
 	-- doing this instead of placing it inside 1 file since this method ties into the existing template concept better
-    task.wait(0.1)
+	task.wait(0.1)
 	fs.move("./Packages", "./packages", true)
 end

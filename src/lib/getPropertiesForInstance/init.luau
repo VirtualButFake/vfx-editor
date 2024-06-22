@@ -2,22 +2,30 @@ local theme = require("@src/theme")
 
 local fusion = require("@packages/fusion")
 
-local classes = script.classes:GetChildren()
 local classMap: {
 	[string]: {
 		is: (instance: Instance) -> boolean,
 		properties: {
-			[number]: property,
+			[number]: property | category,
 		},
 	},
 } =
-	{}
+	nil :: any
 
-for _, class in classes do
-	classMap[class.Name] = require(class)
+local function setup()
+	local classes = script.classes:GetChildren()
+	classMap = {}
+
+	for _, class in classes do
+		classMap[class.Name] = require(class)
+	end
 end
 
-local function getPropertiesForInstance(instance: Instance): { [number]: property }?
+local function getPropertiesForInstance(instance: Instance): { [number]: category }?
+	if not classMap then
+		setup()
+	end
+
 	for _, class in classMap do
 		if class.is(instance) then
 			return class.properties
@@ -26,6 +34,11 @@ local function getPropertiesForInstance(instance: Instance): { [number]: propert
 
 	return nil
 end
+
+type category = {
+    name: string,
+    properties: { [number]: property },
+}
 
 type property = {
 	name: string,

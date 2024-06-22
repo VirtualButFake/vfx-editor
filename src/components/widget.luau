@@ -27,6 +27,8 @@ local COMPONENT_ONLY_PROPERTIES = {
 	"Plugin",
 }
 
+-- This approach for widgets isn't ideal; it creates temporary widgets that don't store their state.
+-- However, any other approaches are currently too unstable and hacky. (I tried using a single widget per id and updating it's content, but this carried with it a lot of issues.)
 local function pluginWidget(props: props)
 	if plugin == nil then
 		warn("Attempted to create widget but plugin is nil!")
@@ -65,7 +67,7 @@ local function pluginWidget(props: props)
 				props.Enabled:set(newWidget.Enabled)
 			end),
 			newWidget.Destroying:Connect(function()
-				for _, connection in ipairs(connections) do
+				for _, connection in connections do
 					connection:Disconnect()
 				end
 			end),

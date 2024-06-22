@@ -28,15 +28,15 @@ local function colorSequencePropertyField(props: props, useColor: theme.useColor
 	local isWidgetEnabled = Value(false)
 	local wasEnabled = false
 
-	widget({
-		Name = "Color Sequence Editor",
+	local createdWidget = widget({
+		Name = `Color Sequence Editor ({props.Instance}.{props.PropertyName})`,
 		Id = HttpService:GenerateGUID(),
 		InitialDockTo = Enum.InitialDockState.Float,
 		InitialEnabled = false,
-		ForceInitialEnabled = true,
+		FloatingSize = Vector2.new(500, 200),
 		MinimumSize = Vector2.new(500, 200),
 		Enabled = isWidgetEnabled,
-		FloatingSize = Vector2.new(500, 200),
+		ForceInitialEnabled = true,
 		[Children] = {
 			Computed(function()
 				local widgetEnabled = isWidgetEnabled:get()
@@ -69,8 +69,9 @@ local function colorSequencePropertyField(props: props, useColor: theme.useColor
 		end,
 		[Cleanup] = {
 			function()
-				-- not destroying it, see https://devforum.roblox.com/t/2853087
+				-- https://devforum.roblox.com/t/2853087 causes issues while using flipbook here
 				isWidgetEnabled:set(false)
+				createdWidget:Destroy()
 			end,
 		},
 		[Children] = {

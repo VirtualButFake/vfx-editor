@@ -5,26 +5,31 @@ local fusion = require("@packages/fusion")
 local Value = fusion.Value
 
 local listOption = require("@components/listOption")
-local input = require("@components/propertyFields/input")
+local texturePicker = require("@components/propertyFields/texturePicker")
 
-local instance = Instance.new("Part")
+local theme = require("@src/theme")
 
-local PROPERTY_NAME = "Name"
+local PROPERTY_NAME = "Texture"
 
 return {
-	summary = "Input property field",
+	summary = "Texture property field",
 	story = storyBase(function(parent)
+		local instance = Instance.new("ParticleEmitter")
+		instance.Texture = "rbxassetid://0"
+
+		instance.Parent = workspace
+
 		local component = listOption({
 			Size = UDim2.new(0, 256, 0, 48),
 			Position = UDim2.new(0, 0, 0, 0),
 			OptionName = PROPERTY_NAME,
 			Content = {
-				input({
+				texturePicker({
 					Instance = instance,
 					PropertyName = PROPERTY_NAME,
 					Value = Value(instance[PROPERTY_NAME]),
 					LayoutOrder = 1,
-				}),
+				}, theme:get("InstanceTreeItem", "gray", "default", "Base")),
 			},
 		})
 
@@ -32,6 +37,7 @@ return {
 
 		return function()
 			component:Destroy()
+			instance:Destroy()
 		end
 	end),
 }

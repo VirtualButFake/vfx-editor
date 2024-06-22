@@ -11,17 +11,15 @@ local tailwind = require("@packages/tailwind")
 local theme = require("@src/theme")
 
 type props = {
-	Instance: Instance,
-	PropertyName: string,
 	Value: fusion.Value<string>,
 	LayoutOrder: number,
 }
 
 local function inputPropertyField(props: props)
-	local inputDisplay = Value(props.Value:get())
+	local inputDisplay = Value(tostring(props.Value:get()))
 
 	local onPropertyChange = Observer(props.Value):onChange(function()
-		inputDisplay:set(props.Value:get())
+		inputDisplay:set(tostring(props.Value:get()))
 	end)
 
 	return input({

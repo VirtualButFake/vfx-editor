@@ -27,8 +27,8 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 	local isWidgetEnabled = Value(false)
 	local wasEnabled = false
 
-	widget({
-		Name = "Number Sequence Editor",
+	local createdWidget = widget({
+		Name = `Number Sequence Editor ({props.Instance}.{props.PropertyName})`,
 		Id = HttpService:GenerateGUID(),
 		InitialDockTo = Enum.InitialDockState.Float,
 		InitialEnabled = false,
@@ -47,6 +47,7 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 						Value = props.Value,
 						useColor = useColor,
 						Instance = props.Instance,
+                        PropertyName = props.PropertyName,
 					})
 				end
 
@@ -59,7 +60,7 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 		},
 	})
 
-	local colorButton = button({
+	local graphButton = button({
 		Color = "white",
 		Variant = "solid",
 		Icon = {
@@ -74,13 +75,14 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 		end,
 		[Cleanup] = {
 			function()
-				-- not destroying it, see https://devforum.roblox.com/t/2853087
+				-- https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
+				createdWidget:Destroy()
 			end,
 		},
 	})
 
-	return colorButton
+	return graphButton
 end
 
 return numberSequencePropertyField

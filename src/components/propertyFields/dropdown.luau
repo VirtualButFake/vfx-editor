@@ -13,10 +13,9 @@ local tailwind = require("@packages/tailwind")
 local theme = require("@src/theme")
 
 type props = {
-	Instance: Instance,
-	PropertyName: string,
 	Value: fusion.Value<EnumItem>,
 	LayoutOrder: number,
+	Disabled: fusion.CanBeState<boolean>?,
 }
 
 local function dropdownPropertyField(props: props)
@@ -35,6 +34,7 @@ local function dropdownPropertyField(props: props)
 		Color = "gray",
 		Variant = "default",
 		MaxHeight = 3,
+		Disabled = props.Disabled,
 		AppearanceOverride = {
 			_global = {
 				Background = {
@@ -57,7 +57,7 @@ local function dropdownPropertyField(props: props)
 			return options
 		end),
 		SelectedOptions = selectedOptions,
-		Size = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.new(0.75, 0, 0, 20),
 		[Cleanup] = function()
 			disconnectObserver()
 			onPropertyChange()

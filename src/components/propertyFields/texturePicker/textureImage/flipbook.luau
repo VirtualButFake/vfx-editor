@@ -1,0 +1,77 @@
+local RunService = game:GetService("RunService")
+
+local fusion = require("@packages/fusion")
+local Cleanup = fusion.Cleanup
+local Hydrate = fusion.Hydrate
+local New = fusion.New
+
+local fusionUtils = require("@packages/fusionUtils")
+local propertyProvider = fusionUtils.propertyProvider
+
+local requestImage = require("../getImageResolution")
+
+type props = {
+	Image: string,
+	FlipbookMode: "2x2" | "4x4" | "8x8",
+}
+
+local FLIPBOOK_MAPS = {
+	["2x2"] = Vector2.new(2, 2),
+	["4x4"] = Vector2.new(4, 4),
+	["8x8"] = Vector2.new(8, 8),
+}
+
+local function flipbook(props: props)
+	local imageSize = Vector2.new(0, 0)
+
+	local resolution = FLIPBOOK_MAPS[props.FlipbookMode].X * FLIPBOOK_MAPS[props.FlipbookMode].Y
+	local cleanup = {}
+
+	local component = New("ImageLabel")({
+		BackgroundTransparency = 1,
+		Image = props.Image,
+		ImageTransparency = 0,
+		ScaleType = Enum.ScaleType.Fit,
+		[Cleanup] = cleanup,
+	})
+
+	task.spawn(function()
+		imageSize = requestImage(props.Image)
+
+		if imageSize == nil then
+			return
+		end
+
+		component.ImageRectSize = Vector2.new(
+			imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
+			imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
+		)
+	end)
+
+	local timer = 0
+	table.insert(
+		cleanup,
+		RunService.RenderStepped:Connect(function(dt)
+			if imageSize == nil then
+				return
+			end
+
+			timer += dt
+
+			local frame = math.floor(timer * resolution) % resolution
+			local x = frame % FLIPBOOK_MAPS[props.FlipbookMode].X
+			local y = math.floor(frame / FLIPBOOK_MAPS[props.FlipbookMode].X)
+
+			local offset = Vector2.new(
+				x * imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
+				y * imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
+			)
+
+			component.ImageRectOffset = offset
+		end)
+	)
+
+	return Hydrate(component)(propertyProvider.getPropsAndSpecialKeys(props, "ImageLabel"))
+end
+
+return flipbook

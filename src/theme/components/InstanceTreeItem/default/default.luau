@@ -4,6 +4,7 @@ return function(themeName: string)
 	return {
 		Base = {
 			Text = themeName == "Dark" and tailwind.neutral[100] or tailwind.neutral[900],
+            SecondaryText = themeName == "Dark" and tailwind.neutral[500] or tailwind.neutral[500],
 			ToggleButton = themeName == "Dark" and tailwind.neutral[400] or tailwind.neutral[500],
 			Line = themeName == "Dark" and tailwind.neutral[750] or tailwind.neutral[200],
 		},

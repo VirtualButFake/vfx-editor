@@ -57,6 +57,7 @@ local function editor(props: props)
 		displayedInputText:set(string.format("%.2f", peek(peek(sequenceNodes)[peek(selectedNode)]).Time), true)
 	end
 
+	-- resets the current nodes to the new value; primarily used for keeping the property and editor in sync and supporting undo/redo
 	local function refreshNodes()
 		local currentKeypoints = props.Value:get(false).Keypoints
 		local usedSequenceNodes = table.clone(sequenceNodes:get(false))
@@ -82,7 +83,7 @@ local function editor(props: props)
 		end
 	end
 
-	-- i thought this pattern was rly ugly
+	-- i thought this pattern was rly ugly, so i made it a function
 	local function transformKeypoints(transformationFunction: ({ ColorSequenceKeypoint }) -> { ColorSequenceKeypoint })
 		local newKeypoints = table.clone(props.Value:get().Keypoints)
 		transformationFunction(newKeypoints)
@@ -104,15 +105,15 @@ local function editor(props: props)
 
 	local colorValue = Value(peek(peek(sequenceNodes)[peek(selectedNode)]).Value)
 
-	widget({
+	local createdWidget = widget({
 		Name = "Color Picker",
 		Id = HttpService:GenerateGUID(),
 		InitialDockTo = Enum.InitialDockState.Float,
 		InitialEnabled = false,
 		ForceInitialEnabled = true,
 		FloatingSize = Vector2.new(220, 300),
-		MinimumSize = Vector2.new(200, 300),
 		Enabled = isWidgetEnabled,
+		MinimumSize = Vector2.new(200, 300),
 		[Children] = {
 			Computed(function()
 				if isWidgetEnabled:get() then
@@ -184,6 +185,7 @@ local function editor(props: props)
 			function()
 				-- not destroying it, see https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
+				createdWidget:Destroy()
 			end,
 			observers,
 		},
@@ -479,9 +481,9 @@ local function editor(props: props)
 						Color = "gray",
 						Text = displayedInputText,
 						Size = UDim2.new(0, 48, 0, 24),
-						OnFocusLost = function(text)
+						OnFocusLost = function(inputText)
 							local node = sequenceNodes:get()[selectedNode:get()]
-							local textToNumber = tonumber(text)
+							local textToNumber = tonumber(inputText)
 
 							if not node or textToNumber == nil then
 								return

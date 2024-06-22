@@ -1,5 +1,8 @@
+local HttpService = game:GetService("HttpService")
+
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
+local Cleanup = fusion.Cleanup
 local New = fusion.New
 
 local Clean = fusion.cleanup
@@ -10,6 +13,7 @@ local studioComponents = require("@packages/studioComponents")
 local button = studioComponents.common.button
 local input = studioComponents.common.input
 local frame = studioComponents.base.frame
+local tooltip = studioComponents.common.tooltip
 
 local fusionUtils = require("@packages/fusionUtils")
 local topLayerProvider = fusionUtils.topLayerProvider
@@ -19,6 +23,8 @@ local theme = require("@src/theme")
 local appTopbar = require("@components/appTopbar")
 local instanceTreeRoot = require("@components/instanceTreeRoot")
 local scrollingFrame = require("@components/scrollingFrame")
+local widget = require("@components/widget")
+local texturePicker = require("@components/propertyFields/texturePicker/editor")
 
 type props = {
 	Items: fusion.Value<{ Instance }>,
@@ -75,10 +81,41 @@ local function App(props: props)
 
 	local instanceTreeContainer = topLayerProvider.new(instanceTreeContainerFrame)
 
+	local isWidgetEnabled = Value(false)
+	local textureWidget = widget({
+		Name = `Texture Storage`,
+		Id = HttpService:GenerateGUID(),
+		InitialDockTo = Enum.InitialDockState.Float,
+		InitialEnabled = false,
+		ForceInitialEnabled = true,
+		FloatingSize = Vector2.new(575, 408),
+		MinimumSize = Vector2.new(400, 300),
+		Enabled = isWidgetEnabled,
+		[Children] = {
+			Computed(function()
+				local widgetEnabled = isWidgetEnabled:get()
+
+				if widgetEnabled then
+					return ({
+						topLayerProvider.new(texturePicker({
+							IsSelectingImage = false,
+							Path = Value(""),
+						})),
+					})[1]
+				end
+
+				return
+			end, Clean),
+		},
+	})
+
 	local component = New("Frame")({
 		Name = "App",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
+		[Cleanup] = {
+			textureWidget,
+		},
 		[Children] = {
 			New("UIListLayout")({
 				FillDirection = Enum.FillDirection.Vertical,
@@ -140,6 +177,22 @@ local function App(props: props)
 										Variant = "ghost",
 										Icon = "plus",
 									}),
+									tooltip(
+										button({
+											Color = "white",
+											Variant = "ghost",
+											Icon = "images",
+											OnClick = function()
+												isWidgetEnabled:set(true)
+											end,
+										}),
+										{
+											Variant = "default",
+											Text = "Open Texture Storage\n\n<b>(hold ctrl or shift to select multiple items)</b>",
+											Placement = "bottom",
+											RelativePosition = UDim2.new(0, -35, 0, 0),
+										}
+									),
 									button({
 										Color = "white",
 										Variant = "ghost",

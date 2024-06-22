@@ -190,7 +190,7 @@ local function compressPoints(points: { keypoint }): { keypoint }
 
 			local canNotBeExchanged = false
 
-			for _, slope in pairs(slopes) do
+			for _, slope in slopes do
 				if math.abs(slope[1] - slope[2]) > 1e-4 then
 					canNotBeExchanged = true
 					break
@@ -383,6 +383,7 @@ type props = {
 	Value: fusion.Value<NumberSequence>,
 	useColor: theme.useColorFunction,
 	Instance: Instance,
+    PropertyName: string,
 }
 
 local GRAPH_UPDATE_HZ = 45
@@ -412,6 +413,7 @@ local function numberSequenceEditor(props: props)
 	})
 
 	local lastGraphUpdate = 0
+    local attributeName = "_vfxEditorGraph" .. props.PropertyName
 
 	local selectedDot: fusion.Value<{ point }> = Value(nil)
 	local inputTimeText = Value("")
@@ -465,7 +467,7 @@ local function numberSequenceEditor(props: props)
 			table.insert(dereferencedPoints, point:get())
 		end
 
-		props.Instance:SetAttribute("_vfxEditorGraphData", HttpService:JSONEncode(dereferencedPoints))
+		props.Instance:SetAttribute(attributeName, HttpService:JSONEncode(dereferencedPoints))
 		props.Value:set(sequence)
 
 		task.delay(0.05, function()
@@ -473,13 +475,41 @@ local function numberSequenceEditor(props: props)
 		end)
 	end
 
-	local disconnectAttributeChange = props.Instance:GetAttributeChangedSignal("_vfxEditorGraphData"):Connect(function()
+	local disconnectAttributeChange = props.Instance:GetAttributeChangedSignal(attributeName):Connect(function()
 		if isChanging then
 			return
 		end
 
-		local savedData = props.Instance:GetAttribute("_vfxEditorGraphData")
-		local decodedPoints: { point } = savedData and HttpService:JSONDecode(savedData) or nil
+		local savedData = props.Instance:GetAttribute(attributeName)
+		local decodedPoints: { point } = savedData and HttpService:JSONDecode(savedData) or {}
+
+		if #decodedPoints == 0 then
+			-- when the data is nil, it generaly means that either the data was removed or the particle was reset back to its default
+			-- in this case, just generate points from the current sequence
+			local sequence = props.Value:get()
+			local keypoints = sequence.Keypoints
+
+			for _, keypoint in keypoints do
+				table.insert(
+					decodedPoints,
+					{
+						index = keypoint.Time,
+						value = keypoint.Value,
+						envelope = keypoint.Envelope,
+						easingMode = "linear",
+						direction = "InOut",
+						handle1 = {
+							x = -0.1,
+							y = 0,
+						},
+						handle2 = {
+							x = 0.1,
+							y = 0,
+						},
+					} :: any
+				)
+			end
+		end
 
 		if decodedPoints then
 			local oldPoints = points:get()
@@ -1241,8 +1271,11 @@ local function numberSequenceEditor(props: props)
 												math.clamp(relativePosition.Y, 0, graphContainer:get().AbsoluteSize.Y)
 											)
 
-											local horizontalProgress = clampedPosition.X
-												/ graphContainer:get().AbsoluteSize.X
+											local horizontalProgress = math.clamp(
+												clampedPosition.X / graphContainer:get().AbsoluteSize.X,
+												0.001,
+												0.999
+											)
 
 											if index == 1 or index == #points:get() then
 												horizontalProgress = index == 1 and 0 or 1
@@ -1252,14 +1285,8 @@ local function numberSequenceEditor(props: props)
 												- clampedPosition.Y / graphContainer:get().AbsoluteSize.Y
 
 											local newValue = table.clone(value:get())
-											newValue.index = math.clamp(horizontalProgress, 0.001, 0.999)
+											newValue.index = horizontalProgress
 											newValue.value = verticalProgress
-
-											if newValue.envelope > 0 then
-												local distanceToBounds =
-													math.clamp(math.min(1 - newValue.value, newValue.value), 0, 1)
-												newValue.envelope = math.clamp(newValue.envelope, 0, distanceToBounds)
-											end
 
 											-- not necessary, but this is so the ui feels more responsive
 											inputTimeText:set(tostring(newValue.index))
@@ -1622,6 +1649,14 @@ local function numberSequenceEditor(props: props)
 					envelope = keypoint.Envelope,
 					easingMode = "linear",
 					direction = "InOut",
+					handle1 = {
+						x = -0.1,
+						y = 0,
+					},
+					handle2 = {
+						x = 0.1,
+						y = 0,
+					},
 				})
 			)
 		end

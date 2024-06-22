@@ -1,5 +1,6 @@
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
+local Cleanup = fusion.Cleanup
 local Hydrate = fusion.Hydrate
 local New = fusion.New
 local Out = fusion.Out
@@ -30,7 +31,6 @@ local function scrollingFrame(props: props)
 	local scrollingFrameAbsoluteSize = Value(Vector2.new(0, 0))
 
 	local scroller = New("ScrollingFrame")({
-		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		BottomImage = "rbxassetid://17569049896",
 		CanvasSize = UDim2.fromScale(0, 0),
@@ -39,15 +39,17 @@ local function scrollingFrame(props: props)
 			return useColor("ScrollBar").color
 		end),
 		ScrollBarThickness = 6,
+		Size = UDim2.new(1, 0, 1, 0),
 		TopImage = "rbxassetid://17569049728",
+		[Children] = props.Content,
 		[Out("AbsoluteCanvasSize")] = scrollingFrameCanvasSize,
 		[Out("AbsoluteSize")] = scrollingFrameAbsoluteSize,
-		[Children] = props.Content,
 	})
 
 	local component = New("Frame")({
 		Name = "ScrollingFrameContainer",
 		BackgroundTransparency = 1,
+		[Cleanup] = { props.Content, scroller },
 		[Children] = {
 			Computed(function()
 				if not scrollingFrameCanvasSize:get() or not scrollingFrameAbsoluteSize:get() then

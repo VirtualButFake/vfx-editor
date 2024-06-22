@@ -98,7 +98,7 @@ local function compressPoints(points: { graphKeypoint }, resolution: number, sta
 	local validPoints = {}
 	local lastPoint: graphKeypoint?
 
-	for i, point in ipairs(compressedPoints) do
+	for i, point in compressedPoints do
 		if lastPoint and points[i - 2] then
 			local slopes = {}
 
@@ -162,7 +162,7 @@ local function compressPoints(points: { graphKeypoint }, resolution: number, sta
 
 			local canNotBeExchanged = false
 
-			for _, slope in pairs(slopes) do
+			for _, slope in slopes do
 				if math.abs(slope[1] - slope[2]) > 1e-4 then
 					canNotBeExchanged = true
 					break
@@ -193,7 +193,7 @@ local function graphComponent(props: props)
 		local points = use(props.Points)
 		local dereferencedKeypoints = {}
 
-		for _, point in ipairs(points) do
+		for _, point in points do
 			table.insert(dereferencedKeypoints, {
 				index = use(point.index),
 				value = use(point.value),

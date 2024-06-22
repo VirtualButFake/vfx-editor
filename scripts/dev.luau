@@ -42,29 +42,29 @@ task.spawn(function()
 
 			if metadata.accessedAt ~= lastChange then
 				lastChange = metadata.accessedAt
-                task.wait(3) -- weird bug where sourcemap gets corrupted
+				task.wait(3) -- weird bug where sourcemap gets corrupted
 
-                -- iterate src for any rbxm files and add them
-                local function addRbxmFiles(dir)
-                    for _, file in ipairs(fs.readDir(dir)) do
-                        if fs.isFile(dir .. "/" .. file) then
-                            if file:match("%.rbxmx?$") then
-                                -- trim first bit of dir
-                                local split = dir:split("/")
-                                table.remove(split, 1)
-                                local path = table.concat(split, "/")
-                                fs.copy(dir .. "/" .. file, "build/" .. path .. "/" .. file, true)
-                            end
-                        else
-                            addRbxmFiles(dir .. "/" .. file)
-                        end
-                    end
-                end
+				-- iterate src for any rbxm files and add them
+				local function addRbxmFiles(dir)
+					for _, file in (fs.readDir(dir)) do
+						if fs.isFile(dir .. "/" .. file) then
+							if file:match("%.rbxmx?$") then
+								-- trim first bit of dir
+								local split = dir:split("/")
+								table.remove(split, 1)
+								local path = table.concat(split, "/")
+								fs.copy(dir .. "/" .. file, "build/" .. path .. "/" .. file, true)
+							end
+						else
+							addRbxmFiles(dir .. "/" .. file)
+						end
+					end
+				end
 
-                addRbxmFiles("src")
+				addRbxmFiles("src")
 			end
 		end
 
-        task.wait(1)
+		task.wait(1)
 	end
 end)
