@@ -44,45 +44,15 @@ local function tableFindIter(t, v): number?
 	return nil
 end
 
-local function findIndexOf(t, self)
-	local counter = 0
+export type line = "Horizontal" | "HalfVertical" | "StartVertical" | "Vertical" -- startvertical = half vertical line
 
-	for _, value in t do
-		if value ~= nil then
-			counter = counter + 1
-		end
-
-		if value == self then
-			return counter
-		end
-	end
-
-	return nil
-end
-
-local function countArray(t)
-	local counter = 0
-
-	for _, value in t do
-		if value ~= nil then
-			counter = counter + 1
-		end
-	end
-
-	return counter
-end
-
-local function filterArray(t, filter)
-	local newTable = {}
-
-	for _, value in t do
-		if filter(value) then
-			table.insert(newTable, value)
-		end
-	end
-
-	return newTable
-end
+export type instanceMapEntry = {
+	instance: Instance,
+	children: { instanceMapEntry },
+	properties: { getPropertiesForInstance.category | getPropertiesForInstance.property },
+	linesStart: { line },
+	linesCascading: { [number]: { line } },
+}
 
 type props = {
 	LayoutOrder: number,
@@ -98,6 +68,7 @@ type props = {
 	}?,
 	OnPlusClicked: (instance: Instance) -> (),
 	AddTab: (instance: Instance) -> (),
+	InstanceMap: fusion.Computed<instanceMapEntry>,
 }
 
 local TREE_TAB_SIZE = 24
@@ -110,78 +81,35 @@ local ALLOWED_CLASSNAMES = {
 
 local function instanceTreeItem(props: props)
 	local useColor = theme:get("InstanceTreeItem", "gray", "default", "Base")
-	local cascadingLines = Value({})
-	local lineState = Value({})
 
-	local updateLineStateObservers
-	if props.TreeContext then
-		local function updateLineState()
-			local filteredArray = filterArray(props.TreeContext.Children:get(false), function(value)
-				local isAllowedInstance = table.find(ALLOWED_CLASSNAMES, value.ClassName) ~= nil
+	-- recursively iterate through instancemap to find ourselves
+	local function findInstanceInMap(map: instanceMapEntry, instance: Instance): instanceMapEntry?
+		if map.instance == instance then
+			return map
+		end
 
-				if props.SearchMode:get(false)[1] == "instance" and props.Query:get(false) ~= "" then
-					return isAllowedInstance and string.find(value.Name:lower(), props.Query:get(false):lower())
-				end
+		for _, child in map.children do
+			local found = findInstanceInMap(child, instance)
 
-				return isAllowedInstance
-			end)
-
-			local selfIndex = findIndexOf(filteredArray, props.Instance)
-
-			if selfIndex then
-				local isLastChild = selfIndex == countArray(filteredArray)
-				local isFirstChild = selfIndex == 1
-
-				local state = {}
-
-				if not isLastChild then
-					table.insert(state, isFirstChild and "StartVertical" or "Vertical")
-				else
-					table.insert(state, "Horizontal")
-					table.insert(state, "HalfVertical")
-				end
-
-				if not isLastChild and not isFirstChild then
-					table.insert(state, "Horizontal")
-				end
-
-				if isFirstChild then
-					table.insert(state, "Horizontal")
-					table.insert(state, isLastChild and "HalfVertical" or "StartVertical")
-				end
-
-				-- remove duplicates
-				local seen = {}
-
-				for i = #state, 1, -1 do
-					if seen[state[i]] then
-						table.remove(state, i)
-					else
-						seen[state[i]] = true
-					end
-				end
-
-				lineState:set(state)
-
-				local lineContext = table.clone(props.TreeContext.Lines:get(false))
-
-				if not isLastChild then
-					lineContext[props.Depth] = { "Vertical" }
-				end
-
-				cascadingLines:set(lineContext)
+			if found then
+				return found
 			end
 		end
 
-		updateLineStateObservers = {
-			Observer(props.TreeContext.Children):onChange(updateLineState),
-			Observer(props.TreeContext.Lines):onChange(updateLineState),
-			Observer(props.SearchMode):onChange(updateLineState),
-			Observer(props.Query):onChange(updateLineState),
-		}
-
-		updateLineState()
+		return nil
 	end
+
+	local instanceInMap = Computed(function()
+		return findInstanceInMap(props.InstanceMap:get(), props.Instance)
+	end)
+
+	local cascadingLines = Computed(function()
+		return instanceInMap:get().linesCascading
+	end)
+
+	local lineState = Computed(function()
+		return instanceInMap:get().linesStart
+	end)
 
 	local function makeLine(type: string): GuiObject?
 		if type == "Vertical" then
@@ -239,7 +167,6 @@ local function instanceTreeItem(props: props)
 	-- make this stateful, so that fields can check on existence of the property and react when it is added
 	local processedProperties: fusion.Value<getPropertiesForInstance.processedProperties> = fusion.Value({})
 
-	local subItems = Value({})
 	local showSubContent = Value(true)
 
 	local children = Value(props.Instance:GetChildren())
@@ -263,26 +190,64 @@ local function instanceTreeItem(props: props)
 		LayoutOrder = props.LayoutOrder,
 		Size = UDim2.new(1, 0, 0, 0),
 		Visible = Computed(function()
-			-- if searchmode is instances, filter ourselves and our subitems. if no match is found, hide this item
-			if props.SearchMode:get()[1] == "instance" then
+			if props.SearchMode:get()[1] == "instance" and props.Query:get() ~= "" then
 				if string.find(props.Instance.Name:lower(), props.Query:get():lower()) then
 					return true
 				end
 
-				for _, subItem in subItems:get() do
-					if string.find(subItem.Name:lower(), props.Query:get():lower()) then
+				-- recursively search through all children, see if any of them are visible
+				local function searchChildren(entry: instanceMapEntry): boolean
+					local doesEntryMatch = string.find(entry.instance.Name:lower(), props.Query:get():lower())
+
+					if doesEntryMatch then
 						return true
 					end
+
+					for _, child in entry.children do
+						if searchChildren(child) then
+							return true
+						end
+					end
+
+					return false
 				end
 
-				return false
+				return searchChildren(instanceInMap:get())
+			elseif props.SearchMode:get()[1] == "properties" and props.Query:get() ~= "" then
+				-- recursively iterate through all instance maps, see if any of the properties or categories match
+                local function searchProperties(entry: instanceMapEntry): boolean
+                    if entry.properties then
+                        for _, category in entry.properties do
+                            if string.find(category.name:lower(), props.Query:get():lower()) then
+                                return true
+                            end
+
+                            if category.properties then
+                                for _, property in category.properties do
+                                    if string.find(property.name:lower(), props.Query:get():lower()) then
+                                        return true
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    for _, child in entry.children do
+                        if searchProperties(child) then
+                            return true
+                        end
+                    end
+
+                    return false
+                end
+
+				return searchProperties(instanceInMap:get())
 			end
 
 			return true
 		end),
 		[Cleanup] = {
 			onNameChanged,
-			updateLineStateObservers,
 			props.Instance.ChildAdded:Connect(function(child)
 				if not game:IsAncestorOf(props.Instance) then
 					return
@@ -305,7 +270,7 @@ local function instanceTreeItem(props: props)
 				end
 
 				-- this might seem weird at first, but Fusion plays a LOT better with us having an empty index instead of
-				-- moving all 1 down, resulting in a rerender, etcq
+				-- moving all 1 down, resulting in a rerender, etc
 				newChildren[childIndex] = nil
 				children:set(newChildren, true)
 			end),
@@ -471,7 +436,7 @@ local function instanceTreeItem(props: props)
 										Computed(function()
 											if
 												not instanceCategories
-												or #instanceCategories == 0 and #subItems:get() == 0
+												or #instanceCategories == 0 and #instanceInMap:get().children == 0
 											then
 												return nil
 											end
@@ -582,8 +547,7 @@ local function instanceTreeItem(props: props)
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, 0),
 				Visible = Computed(function()
-					-- if this instance doesn't have properties and has no sub content, don't render the sub content
-					if not instanceCategories or #instanceCategories == 0 and #subItems:get() == 0 then
+					if not instanceCategories or #instanceCategories == 0 and #instanceInMap:get().children == 0 then
 						return false
 					end
 
@@ -618,10 +582,6 @@ local function instanceTreeItem(props: props)
 										return index, nil
 									end
 
-									local newSubItems = peek(subItems)
-									table.insert(newSubItems, value)
-									subItems:set(newSubItems)
-
 									return index,
 										instanceTreeItem({
 											LayoutOrder = index,
@@ -637,13 +597,9 @@ local function instanceTreeItem(props: props)
 											OnPlusClicked = props.OnPlusClicked,
 											AddTab = props.AddTab,
 											OpenedContextMenu = props.OpenedContextMenu,
-										}),
-										value
-								end, function(index, value, childInstance)
-									local newSubItems = peek(subItems)
-									table.remove(newSubItems, table.find(newSubItems, childInstance))
-									subItems:set(newSubItems)
-
+											InstanceMap = props.InstanceMap,
+										})
+								end, function(index, value)
 									Clean(index, value)
 								end),
 							},
@@ -666,12 +622,6 @@ local function instanceTreeItem(props: props)
 								VerticalAlignment = Enum.VerticalAlignment.Top,
 							}),
 							ForPairs(instanceCategories, function(index, category)
-								local propertyLineType = index == 1 and "StartVertical" or "Vertical"
-
-								local subItemsCount = Computed(function()
-									return #subItems:get()
-								end)
-
 								local listContentSize = Value(Vector2.new())
 								local showCategory = Value(true)
 
@@ -683,11 +633,7 @@ local function instanceTreeItem(props: props)
 										LayoutOrder = index,
 										Size = UDim2.new(1, 0, 0, 0),
 										Visible = Computed(function()
-											if props.SearchMode:get()[1] ~= "properties" then
-												return true
-											end
-
-											if props.Query:get() == "" then
+											if props.SearchMode:get()[1] ~= "properties" or props.Query:get() == "" then
 												return true
 											end
 
@@ -793,140 +739,7 @@ local function instanceTreeItem(props: props)
 													)
 												end),
 												[Children] = {
-													New("Frame")({
-														Name = tostring(props.Depth),
-														BackgroundTransparency = 1,
-														Position = UDim2.new(
-															0,
-															math.clamp((props.Depth - 1) * TREE_TAB_SIZE, 0, math.huge)
-																+ 8,
-															0,
-															0
-														),
-														Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
-														[Children] = {
-															Computed(function()
-																local filteredArray = filterArray(
-																	props.TreeContext
-																			and props.TreeContext.Children:get()
-																		or {},
-																	function(value)
-																		local isAllowedInstance = table.find(
-																			ALLOWED_CLASSNAMES,
-																			value.ClassName
-																		) ~= nil
-
-																		if
-																			props.SearchMode:get()[1] == "instance"
-																			and props.Query:get() ~= ""
-																		then
-																			return isAllowedInstance
-																				and string.find(
-																					value.Name:lower(),
-																					props.Query:get():lower()
-																				)
-																		end
-
-																		return isAllowedInstance
-																	end
-																)
-
-																-- if no treecontext exists or this instance has no children and we are not the last child, render the line
-																if
-																	not props.TreeContext
-																	or subItemsCount:get() > 0
-																		and findIndexOf(filteredArray, props.Instance) ~= countArray(
-																			filteredArray
-																		)
-																then
-																	return makeLine(propertyLineType)
-																end
-
-																-- if we are the last child, don't render the line (instance is closed before properties)
-																if
-																	findIndexOf(filteredArray, props.Instance)
-																	== countArray(filteredArray)
-																then
-																	return nil
-																end
-
-																return makeLine(propertyLineType)
-															end, Clean),
-														},
-													}),
-													Computed(function()
-														if subItemsCount:get() > 0 then
-															return New("Frame")({
-																Name = tostring(props.Depth),
-																BackgroundTransparency = 1,
-																Position = UDim2.new(
-																	0,
-																	math.clamp(
-																		props.Depth * TREE_TAB_SIZE,
-																		0,
-																		math.huge
-																	) + 8,
-																	0,
-																	0
-																),
-																Size = UDim2.new(0, TREE_TAB_SIZE - 8, 1, 0),
-																[Children] = {
-																	Computed(function()
-																		-- if we have no idea where we are in the tree, just render the line
-																		if
-																			subItemsCount:get() > 0
-																			or not props.TreeContext
-																		then
-																			return makeLine(propertyLineType)
-																		end
-
-																		local filteredArray = filterArray(
-																			props.TreeContext.Children:get(),
-																			function(value)
-																				local isAllowedInstance = table.find(
-																					ALLOWED_CLASSNAMES,
-																					value.ClassName
-																				) ~= nil
-
-																				if
-																					props.SearchMode:get(false)[1]
-																						== "instance"
-																					and props.Query:get(false) ~= ""
-																				then
-																					return isAllowedInstance
-																						and string.find(
-																							value.Name:lower(),
-																							props.Query
-																								:get(false)
-																								:lower()
-																						)
-																				end
-
-																				return isAllowedInstance
-																			end
-																		)
-
-																		if
-																			findIndexOf(filteredArray, props.Instance)
-																			== countArray(filteredArray)
-																		then
-																			return nil
-																		end
-
-																		-- if we are the last child, don't render the line (instance is closed before properties)
-																		return makeLine(propertyLineType)
-																	end, Clean),
-																},
-															})
-														end
-
-														return nil
-													end, Clean),
 													ForPairs(cascadingLines, function(depth, states)
-														if depth == props.Depth then
-															return depth, nil
-														end
-
 														return depth,
 															New("Frame")({
 																Name = tostring(depth),
