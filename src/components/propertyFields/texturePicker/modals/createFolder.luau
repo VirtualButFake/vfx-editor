@@ -15,7 +15,7 @@ local use = fusionUtils.use
 local theme = require("@src/theme")
 
 local inputPropertyField = require("@components/propertyFields/input")
-local modalOptionWrapper = require("./modalOptionWrapper")
+local modalOptionWrapper = require("@components/modalOptionWrapper")
 
 type folder = {}
 
@@ -47,9 +47,9 @@ local function createFolderModal(props: props)
 			}),
 			New("Frame")({
 				Name = "TopItems",
-				Size = UDim2.new(1, 0, 0, 0),
-				BackgroundTransparency = 1,
 				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 0),
 				[Children] = {
 					text({
 						Appearance = props.useColor("Title", true),
@@ -58,7 +58,10 @@ local function createFolderModal(props: props)
 							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
-						AutomaticSize = Enum.AutomaticSize.XY,
+						AnchorPoint = Vector2.new(0, 0.5),
+						Position = UDim2.new(0, 0, 0.5, 0),
+						Size = UDim2.new(1, 0, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y,
 						TextXAlignment = Enum.TextXAlignment.Center,
 					}),
 					button({

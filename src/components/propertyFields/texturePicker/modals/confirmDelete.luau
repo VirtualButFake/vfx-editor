@@ -46,7 +46,10 @@ local function createFolderModal(props: props)
 					Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
 					TextSize = 18,
 				},
-				AutomaticSize = Enum.AutomaticSize.XY,
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 0, 0.5, 0),
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
 				TextXAlignment = Enum.TextXAlignment.Center,
 			}),
 			text({

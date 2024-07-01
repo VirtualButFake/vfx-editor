@@ -44,9 +44,9 @@ local function moveItemModal(props: props)
 			}),
 			New("Frame")({
 				Name = "TopItems",
-				Size = UDim2.new(1, 0, 0, 0),
-				BackgroundTransparency = 1,
 				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 0),
 				[Children] = {
 					text({
 						Appearance = props.useColor("Title", true),
@@ -55,7 +55,10 @@ local function moveItemModal(props: props)
 							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
-						AutomaticSize = Enum.AutomaticSize.XY,
+						AnchorPoint = Vector2.new(0, 0.5),
+						Position = UDim2.new(0, 0, 0.5, 0),
+						Size = UDim2.new(1, 0, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y,
 						TextXAlignment = Enum.TextXAlignment.Center,
 					}),
 					button({
@@ -93,13 +96,13 @@ local function moveItemModal(props: props)
 								Name = "Home",
 								CurrentPath = selectedPath,
 								Content = props.Textures,
+								DisabledCascades = props.IsFolder,
+								DisabledPath = props.CurrentPath,
 								OnClick = function(path)
 									selectedPath:set(path)
 									isConfirmDisabled:set(false)
 								end,
 								Path = { "Home" },
-								DisabledPath = props.CurrentPath,
-								DisabledCascades = props.IsFolder,
 							}),
 						},
 						ScrollingFrameProps = {

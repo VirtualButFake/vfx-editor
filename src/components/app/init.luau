@@ -1,4 +1,5 @@
 local HttpService = game:GetService("HttpService")
+local Selection = game:GetService("Selection")
 
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
@@ -7,6 +8,7 @@ local New = fusion.New
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
+local ForPairs = fusion.ForPairs
 local Value = fusion.Value
 
 local studioComponents = require("@packages/studioComponents")
@@ -14,12 +16,17 @@ local button = studioComponents.common.button
 local input = studioComponents.common.input
 local frame = studioComponents.base.frame
 local tooltip = studioComponents.common.tooltip
+local modal = studioComponents.common.modal
+local selectMenu = studioComponents.common.selectMenu
 
 local fusionUtils = require("@packages/fusionUtils")
 local topLayerProvider = fusionUtils.topLayerProvider
 
 local theme = require("@src/theme")
 
+local historyHandler = require("@src/lib/historyHandler")
+
+local newInstanceModal = require("./newInstanceModal")
 local appTopbar = require("@components/appTopbar")
 local instanceTreeRoot = require("@components/instanceTreeRoot")
 local scrollingFrame = require("@components/scrollingFrame")
@@ -33,8 +40,15 @@ type props = {
 local function App(props: props)
 	local useColor = theme:get("App", "gray", "default", "Base")
 
-	local selectedInstance = Value(props.Items:get()[1] or nil)
+	local selectedInstance = Value(props.Items:get(false)[1] or nil)
+
 	local searchQuery = Value("")
+	local searchMode = Value({ "properties" })
+
+	local newInstanceTarget = nil
+	local isPlusModalVisible = Value(false)
+
+	local sharedContextMenuState = Value(false)
 
 	local instanceTreeContainerFrame = frame({
 		Name = "InstanceTreeContainer",
@@ -57,18 +71,33 @@ local function App(props: props)
 					New("UIPadding")({
 						PaddingRight = UDim.new(0, 4),
 					}),
-					Computed(function()
-						return instanceTreeRoot({
-							RootInstance = selectedInstance:get(),
-							Query = searchQuery,
-							MaxDepth = 3,
-						})
+					ForPairs(props.Items, function(index, value)
+						return index,
+							instanceTreeRoot({
+								RootInstance = value,
+								Query = searchQuery,
+                                SearchMode = searchMode,
+								MaxDepth = 3,
+								OnPlusClicked = function(instance)
+									newInstanceTarget = instance
+									isPlusModalVisible:set(true)
+								end,
+								SharedContextMenuState = sharedContextMenuState,
+								AddTab = function(instance)
+									local oldItems = table.clone(props.Items:get())
+
+									if table.find(oldItems, instance) then
+										return
+									end
+
+									table.insert(oldItems, instance)
+									props.Items:set(oldItems)
+								end,
+								Visible = Computed(function()
+									return selectedInstance:get() == value
+								end),
+							})
 					end, Clean),
-					New("Frame")({
-						Name = "Padding",
-						BackgroundTransparency = 1,
-						Size = UDim2.new(0, 0, 0, 128),
-					}),
 				},
 				ScrollingFrameProps = {
 					VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
@@ -79,42 +108,42 @@ local function App(props: props)
 		},
 	})
 
-	local instanceTreeContainer = topLayerProvider.new(instanceTreeContainerFrame)
+	modal(instanceTreeContainerFrame, {
+		Visible = isPlusModalVisible,
+		Content = newInstanceModal({
+			useColor = useColor,
+			OnClose = function()
+				isPlusModalVisible:set(false)
+			end,
+			OnCreate = function(name, class)
+				isPlusModalVisible:set(false)
 
-	local isWidgetEnabled = Value(false)
-	local textureWidget = widget({
-		Name = `Texture Storage`,
-		Id = HttpService:GenerateGUID(),
-		InitialDockTo = Enum.InitialDockState.Float,
-		InitialEnabled = false,
-		ForceInitialEnabled = true,
-		FloatingSize = Vector2.new(575, 408),
-		MinimumSize = Vector2.new(400, 300),
-		Enabled = isWidgetEnabled,
-		[Children] = {
-			Computed(function()
-				local widgetEnabled = isWidgetEnabled:get()
-
-				if widgetEnabled then
-					return ({
-						topLayerProvider.new(texturePicker({
-							IsSelectingImage = false,
-							Path = Value(""),
-						})),
-					})[1]
-				end
-
-				return
-			end, Clean),
-		},
+				historyHandler("Create Instance", function()
+					local new = Instance.new(class)
+					new.Name = name
+					new.Parent = newInstanceTarget
+				end)
+			end,
+		}),
+		OnClickBesides = function()
+			isPlusModalVisible:set(false)
+		end,
+		Padding = UDim.new(0, 8),
 	})
 
-	local component = New("Frame")({
+	local isWidgetEnabled = Value(false)
+	local textureWidget
+
+	local component = topLayerProvider.new(New("Frame")({
 		Name = "App",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 		[Cleanup] = {
-			textureWidget,
+			function()
+				if textureWidget then
+					textureWidget:Destroy()
+				end
+			end,
 		},
 		[Children] = {
 			New("UIListLayout")({
@@ -158,6 +187,7 @@ local function App(props: props)
 							appTopbar({
 								Items = props.Items,
 								SelectedInstance = selectedInstance,
+								SharedContextMenuState = sharedContextMenuState,
 							}),
 							New("Frame")({
 								Name = "Buttons",
@@ -176,6 +206,20 @@ local function App(props: props)
 										Color = "white",
 										Variant = "ghost",
 										Icon = "plus",
+										OnClick = function()
+											if Selection:Get()[1] then
+												-- create new tab with selected instance
+												local oldItems = table.clone(props.Items:get())
+												local newItem = Selection:Get()[1]
+
+												if table.find(oldItems, newItem) then
+													return
+												end
+
+												table.insert(oldItems, newItem)
+												props.Items:set(oldItems)
+											end
+										end,
 									}),
 									tooltip(
 										button({
@@ -183,6 +227,35 @@ local function App(props: props)
 											Variant = "ghost",
 											Icon = "images",
 											OnClick = function()
+												if textureWidget == nil then
+													textureWidget = widget({
+														Name = "Texture Storage",
+														Id = HttpService:GenerateGUID(),
+														InitialDockTo = Enum.InitialDockState.Float,
+														InitialEnabled = false,
+														ForceInitialEnabled = true,
+														FloatingSize = Vector2.new(575, 408),
+														MinimumSize = Vector2.new(400, 300),
+														Enabled = isWidgetEnabled,
+														[Children] = {
+															Computed(function()
+																local widgetEnabled = isWidgetEnabled:get()
+
+																if widgetEnabled then
+																	return ({
+																		topLayerProvider.new(texturePicker({
+																			IsSelectingImage = false,
+																			Path = Value({ "Home" }),
+																		})),
+																	})[1]
+																end
+
+																return
+															end, Clean),
+														},
+													})
+												end
+
 												isWidgetEnabled:set(true)
 											end,
 										}),
@@ -215,19 +288,50 @@ local function App(props: props)
 						PaddingRight = UDim.new(0, 4),
 						PaddingTop = UDim.new(0, 2),
 					}),
+					New("UIListLayout")({
+						FillDirection = Enum.FillDirection.Horizontal,
+						HorizontalAlignment = Enum.HorizontalAlignment.Left,
+						Padding = UDim.new(0, 4),
+						SortOrder = Enum.SortOrder.LayoutOrder,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+					}),
+					selectMenu({
+						Color = "gray",
+						Variant = "default",
+						Size = UDim2.new(0, 128, 1, 0),
+						MaxHeight = 2,
+						SelectedOptions = searchMode,
+						Options = {
+							{
+								Id = "instance",
+								Label = "Instance",
+								Icon = "cuboid",
+							},
+							{
+								Id = "properties",
+								Label = "Properties",
+								Icon = "table-properties",
+							},
+						},
+					}),
 					input({
 						Color = "gray",
 						Variant = "default",
-						Placeholder = "Filter properties..",
+						Placeholder = Computed(function()
+                            return searchMode:get()[1] == "instance" and "Search instances.." or "Search properties.."
+                        end),
 						Icon = "search",
-						Size = UDim2.new(1, 0, 1, 0),
+						Size = UDim2.new(1, -128, 1, 0),
 						Text = searchQuery,
+						OnTextChanged = function(text)
+							searchQuery:set(text)
+						end,
 					}),
 				},
 			}),
-			instanceTreeContainer,
+			instanceTreeContainerFrame,
 		},
-	})
+	}))
 
 	return component
 end

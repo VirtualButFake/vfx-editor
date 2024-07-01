@@ -38,7 +38,7 @@ local function numberSequencePropertyField(props: props)
 
 	local texturePath = Computed(function()
 		local data = props.Value:get()
-		local id = data and data.Texture
+		local id = data and data:split(",")[1]
 
 		if textures and textures:get() then
 			local function iterate(textureList: editor.textureList, path: { string }): { string }?
@@ -57,46 +57,13 @@ local function numberSequencePropertyField(props: props)
 				return nil
 			end
 
-			return iterate(textures:get(), {})
+            return iterate(textures:get(), {}) or {"Home"}
 		end
 
 		return nil
 	end)
 
-	local createdWidget = widget({
-		Name = `Texture Picker ({props.Instance}.{props.PropertyName})`,
-		Id = HttpService:GenerateGUID(),
-		InitialDockTo = Enum.InitialDockState.Float,
-		InitialEnabled = false,
-		ForceInitialEnabled = true,
-		FloatingSize = Vector2.new(575, 408),
-		MinimumSize = Vector2.new(400, 300),
-		Enabled = isWidgetEnabled,
-		[Children] = {
-			Computed(function()
-				local widgetEnabled = isWidgetEnabled:get()
-
-				if widgetEnabled and not wasEnabled then
-					wasEnabled = true
-
-					lastReturn = ({
-						topLayerProvider.new(editor({
-							Value = props.Value,
-							Instance = props.Instance,
-							IsSelectingImage = true,
-							Path = texturePath,
-						})),
-					})[1]
-				end
-
-				if not widgetEnabled then
-					wasEnabled = false
-				end
-
-				return { lastReturn }
-			end, Clean),
-		},
-	})
+	local createdWidget
 
 	local imageButton = button({
 		Color = "white",
@@ -122,13 +89,53 @@ local function numberSequencePropertyField(props: props)
 		Size = UDim2.new(0, 16, 0, 16),
 		LayoutOrder = props.LayoutOrder,
 		OnClick = function()
+            if createdWidget == nil then 
+                createdWidget = widget({
+                    Name = `Texture Picker ({props.Instance}.{props.PropertyName})`,
+                    Id = HttpService:GenerateGUID(),
+                    InitialDockTo = Enum.InitialDockState.Float,
+                    InitialEnabled = false,
+                    ForceInitialEnabled = true,
+                    FloatingSize = Vector2.new(575, 408),
+                    MinimumSize = Vector2.new(400, 300),
+                    Enabled = isWidgetEnabled,
+                    [Children] = {
+                        Computed(function()
+                            local widgetEnabled = isWidgetEnabled:get()
+            
+                            if widgetEnabled and not wasEnabled then
+                                wasEnabled = true
+            
+                                lastReturn = ({
+                                    topLayerProvider.new(editor({
+                                        Value = props.Value,
+                                        Instance = props.Instance,
+                                        IsSelectingImage = true,
+                                        Path = texturePath,
+                                    })),
+                                })[1]
+                            end
+            
+                            if not widgetEnabled then
+                                wasEnabled = false
+                            end
+            
+                            return { lastReturn }
+                        end, Clean),
+                    },
+                })
+            end
+
 			isWidgetEnabled:set(true)
 		end,
 		[Cleanup] = {
 			function()
 				-- https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
-				createdWidget:Destroy()
+				
+                if createdWidget then
+                    createdWidget:Destroy()
+                end
 			end,
 		},
 	})

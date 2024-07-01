@@ -1,5 +1,5 @@
+local HttpService = game:GetService("HttpService")
 local Selection = game:GetService("Selection")
-local StudioService = game:GetService("StudioService")
 
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
@@ -20,9 +20,9 @@ local use = fusionUtils.use
 local theme = require("@src/theme")
 
 local treeButton = require("../treeButton")
+local modalOptionWrapper = require("@components/modalOptionWrapper")
+local inputPropertyField = require("@components/propertyFields/input")
 local scrollFrame = require("@components/scrollingFrame")
-
-local getPropertiesForInstance = require("@src/lib/getPropertiesForInstance")
 
 type texture = {
 	name: string,
@@ -68,10 +68,6 @@ local function deepCopy<T>(t: T & {}): T
 	return copy :: any
 end
 
-local function concatMultilineString(...: string)
-	return table.concat({ ... }, "\n")
-end
-
 type props = {
 	useColor: theme.useColorFunction,
 	BaseTextures: { textureList },
@@ -83,6 +79,7 @@ type props = {
 local function importInstancesModal(props: props)
 	local operationHandled = false
 	local selectedItems = Value(Selection:Get())
+	local inputValue = Value("")
 
 	local visualizedTextures = Value({}) -- same as textures, but the new textures are visualized here
 
@@ -90,15 +87,7 @@ local function importInstancesModal(props: props)
 		local textures = deepCopy(props.BaseTextures)
 		local visualizationTextures = deepCopy(textures)
 
-		--[[
-
-            If it is an instance that has properties, and one of those is Texture, then add it to the list
-            If the item is a folder, nest it's children
-            If the instance name is it's classname, use the parent name instead
-
-        ]]
-
-		local function insertIntoTable(t, content)
+		local function insertIntoTable(t, content: { textureList | texture })
 			for _, v in ipairs(content) do
 				-- if t contains an item whose name is the item that we're trying to insert, we need to add a suffix of (x) to the name
 				local newName = v.name
@@ -123,93 +112,38 @@ local function importInstancesModal(props: props)
 				end
 
 				v.name = newName
-
 				table.insert(t, v)
 			end
 		end
 
-		local function iterateChildren(children: { Instance }): { texture | textureList }
-			local result: { texture | textureList } = {}
-			local visualizationResult: { texture | textureList } = {}
-
-			for _, child in ipairs(children) do
-				local properties = getPropertiesForInstance(child)
-				local hasInserted = false
-
-				if properties then
-					for _, property in ipairs(properties) do
-						if property.name == "Texture" then
-							local name = child.Name
-
-							if name == child.ClassName then
-								name = child.Parent.Name
-							end
-
-							name = name:gsub("[^%w%s%-()]", "")
-
-							table.insert(result, {
-								name = name,
-								id = child.Texture,
-								flipbookLayout = child:IsA("ParticleEmitter") and child.FlipbookLayout.Name:split(
-									"Grid"
-								)[2] or nil,
-							})
-
-							table.insert(visualizationResult, {
-								name = name,
-								content = {},
-								isItem = true,
-								icon = StudioService:GetClassIcon(child.ClassName).Image,
-							})
-
-							hasInserted = true
-						end
-					end
-				end
-
-				-- if nothing has been found yet, then iterate through the children
-				if not hasInserted then
-					if child:IsA("Folder") then
-						local data, visualizationData = iterateChildren(child:GetChildren())
-
-						if #data > 0 then
-							table.insert(result, {
-								name = child.Name,
-								content = data,
-							})
-
-							table.insert(visualizationResult, {
-								name = child.Name,
-								content = visualizationData,
-							})
-						end
-					else
-						local data, visualizationData = iterateChildren(child:GetChildren())
-
-						if #data > 0 then
-							insertIntoTable(result, data)
-							insertIntoTable(visualizationResult, visualizationData)
-						end
-					end
-				end
-			end
-
-			return result, visualizationResult
-		end
-
 		local targetTable = traverseTextureList(textures, props.Path)
-		local targetVisualizationTable = traverseTextureList(visualizationTextures, props.Path)
+		local targetvisualizationTable = traverseTextureList(visualizationTextures, props.Path)
 
-		local newContent, visualizationContent = iterateChildren(selectedItems:get())
+		-- parse json
+		local succ, parsed = pcall(function()
+			return HttpService:JSONDecode(inputValue:get())
+		end)
 
-		if #newContent > 0 then
-			if targetTable.content then
-				insertIntoTable(targetTable.content, newContent)
-				insertIntoTable(targetVisualizationTable, visualizationContent)
-			else
-				insertIntoTable(targetTable, newContent)
-				insertIntoTable(targetVisualizationTable, visualizationContent)
+		if succ and typeof(parsed) == "table" then
+			-- this is an array of textures or texture lists.
+			-- we need to insert them into the target table
+			insertIntoTable(targetTable, parsed)
+
+			-- for visualization, we need to tag all texture ITEMS (so the ones that have .id) with .isItem = true. this should be recursive
+			local function tagItems(content)
+				for _, v in ipairs(content) do
+					if v.id then
+						v.isItem = true
+					else
+						tagItems(v.content)
+					end
+				end
 			end
+
+			tagItems(parsed)
+
+			-- now we need to insert the visualization textures into the visualization table
+			insertIntoTable(targetvisualizationTable, parsed)
 		end
 
 		visualizedTextures:set(traverseTextureList(visualizationTextures, props.Path))
@@ -238,10 +172,6 @@ local function importInstancesModal(props: props)
 		return compareTables(currentTextures:get(), props.BaseTextures)
 	end)
 
-	if props.Path[1] == "" then
-		props.Path[1] = "Home"
-	end
-
 	return New("Frame")({
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -268,11 +198,14 @@ local function importInstancesModal(props: props)
 					text({
 						Appearance = props.useColor("Title", true),
 						Text = {
-							Label = "Import from Selection",
+							Label = "Import from JSON",
 							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
-						AutomaticSize = Enum.AutomaticSize.XY,
+						AnchorPoint = Vector2.new(0, 0.5),
+						Position = UDim2.new(0, 0, 0.5, 0),
+						Size = UDim2.new(1, 0, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y,
 						TextXAlignment = Enum.TextXAlignment.Center,
 					}),
 					button({
@@ -288,11 +221,17 @@ local function importInstancesModal(props: props)
 			text({
 				Appearance = props.useColor("Description", true),
 				Text = {
-					Label = concatMultilineString(
-						"This feature attempts to import instances that are selected in the explorer into the texture picker.",
-						"Please note that this feature is experimental and may not work as expected.",
-						"\n<b>Double-check the imported textures before confirming.</b>"
-					),
+					Label = Computed(function()
+						local baseString =
+							"Insert JSON in the text box below. You can see the new file structure below the text box."
+
+						if isConfirmDisabled:get() and #inputValue:get() > 0 then
+							return baseString
+								.. ' \n\n<font color="#ef4444" weight="semibold">The JSON is invalid, or the file structure is unchanged.</font>'
+						end
+
+						return baseString .. "\n\nMake sure the changes are correct before importing."
+					end),
 					TextSize = 14,
 					Font = theme.global.font,
 				},
@@ -301,6 +240,13 @@ local function importInstancesModal(props: props)
 				TextWrapped = true,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				RichText = true,
+			}),
+			modalOptionWrapper({
+				OptionName = "JSON",
+				Content = inputPropertyField({
+					Value = inputValue,
+					LayoutOrder = 1,
+				}),
 			}),
 			frame({
 				Appearance = props.useColor("LighterBackground", true),
@@ -327,7 +273,7 @@ local function importInstancesModal(props: props)
 								Name = props.Path[#props.Path],
 								CurrentPath = Value(props.Path),
 								Content = visualizedTextures,
-								Path = table.clone(props.Path),
+								Path = props.Path,
 							}),
 						},
 						ScrollingFrameProps = {

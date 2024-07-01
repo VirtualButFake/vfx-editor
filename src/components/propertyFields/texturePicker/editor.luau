@@ -171,7 +171,7 @@ local function editor(props: props)
 			Text = "Home",
 			Icon = "home",
 			OnClick = function()
-				currentPath:set("")
+				currentPath:set({ "Home" })
 			end,
 		},
 	})
@@ -495,7 +495,6 @@ local function editor(props: props)
 																	return item.name == newName
 																end)
 															do
-																print("new nmae")
 																i = i + 1
 																newName = name .. " (" .. i .. ")"
 															end
@@ -904,7 +903,7 @@ local function editor(props: props)
 													modalContent:set(moveItemModal({
 														IsFolder = item.content ~= nil,
 														useColor = useColor,
-														CurrentPath = currentPath:get() or "",
+														CurrentPath = currentPath:get() or {"Home"},
 														Textures = Value(textures:get()),
 														OnClose = function()
 															isModalVisible:set(false)
@@ -1134,12 +1133,7 @@ local function editor(props: props)
 															if item.id then
 																-- texture
 																if props.Value and props.IsSelectingImage then
-																	props.Value:set({
-																		Texture = item.id,
-																		FlipbookLayout = item.flipbookLayout
-																				and Enum.ParticleFlipbookLayout["Grid" .. item.flipbookLayout]
-																			or Enum.ParticleFlipbookLayout.None,
-																	})
+                                                                    props.Value:set(`{item.id}, Grid{item.flipbookLayout}`)
 																end
 															else
 																-- folder

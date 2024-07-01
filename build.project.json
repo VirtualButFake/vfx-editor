@@ -1,8 +1,9 @@
 {
-    "name": "VFXEditor",
-    "emitLegacyScripts": false,
-    "tree": {
-      "$path": "build"
-    }
-  }
-  
+	"name": "VFXEditor",
+	"tree": {
+		"$path": "build",
+		"packages": {
+			"$path": "packages"
+		}
+	}
+}

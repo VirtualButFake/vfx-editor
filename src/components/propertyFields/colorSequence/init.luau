@@ -28,36 +28,7 @@ local function colorSequencePropertyField(props: props, useColor: theme.useColor
 	local isWidgetEnabled = Value(false)
 	local wasEnabled = false
 
-	local createdWidget = widget({
-		Name = `Color Sequence Editor ({props.Instance}.{props.PropertyName})`,
-		Id = HttpService:GenerateGUID(),
-		InitialDockTo = Enum.InitialDockState.Float,
-		InitialEnabled = false,
-		FloatingSize = Vector2.new(500, 200),
-		MinimumSize = Vector2.new(500, 200),
-		Enabled = isWidgetEnabled,
-		ForceInitialEnabled = true,
-		[Children] = {
-			Computed(function()
-				local widgetEnabled = isWidgetEnabled:get()
-
-				if widgetEnabled and not wasEnabled then
-					wasEnabled = true
-
-					return editor({
-						Value = props.Value,
-						useColor = useColor,
-					})
-				end
-
-				if not widgetEnabled then
-					wasEnabled = false
-				end
-
-				return nil
-			end, Clean),
-		},
-	})
+	local createdWidget
 
 	local colorButton = button({
 		Appearance = { color = Color3.new(1, 1, 1), transparency = 1, shadow = 2 },
@@ -65,13 +36,49 @@ local function colorSequencePropertyField(props: props, useColor: theme.useColor
 		Size = UDim2.new(0, 20, 0, 20),
 		LayoutOrder = props.LayoutOrder,
 		OnClick = function()
+			if createdWidget == nil then
+				createdWidget = widget({
+					Name = `Color Sequence Editor ({props.Instance}.{props.PropertyName})`,
+					Id = HttpService:GenerateGUID(),
+					InitialDockTo = Enum.InitialDockState.Float,
+					InitialEnabled = false,
+					ForceInitialEnabled = true,
+					FloatingSize = Vector2.new(500, 200),
+					MinimumSize = Vector2.new(500, 200),
+					Enabled = isWidgetEnabled,
+					[Children] = {
+						Computed(function()
+							local widgetEnabled = isWidgetEnabled:get()
+
+							if widgetEnabled and not wasEnabled then
+								wasEnabled = true
+
+								return editor({
+									Value = props.Value,
+									useColor = useColor,
+								})
+							end
+
+							if not widgetEnabled then
+								wasEnabled = false
+							end
+
+							return nil
+						end, Clean),
+					},
+				})
+			end
+
 			isWidgetEnabled:set(true)
 		end,
 		[Cleanup] = {
 			function()
 				-- https://devforum.roblox.com/t/2853087 causes issues while using flipbook here
 				isWidgetEnabled:set(false)
-				createdWidget:Destroy()
+                
+				if createdWidget then
+					createdWidget:Destroy()
+				end
 			end,
 		},
 		[Children] = {

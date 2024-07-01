@@ -21,44 +21,14 @@ type props = {
 	PropertyName: string,
 	Value: fusion.Value<NumberSequence>,
 	LayoutOrder: number,
+    SupportsEnvelope: boolean,
 }
 
 local function numberSequencePropertyField(props: props, useColor: theme.useColorFunction)
 	local isWidgetEnabled = Value(false)
 	local wasEnabled = false
 
-	local createdWidget = widget({
-		Name = `Number Sequence Editor ({props.Instance}.{props.PropertyName})`,
-		Id = HttpService:GenerateGUID(),
-		InitialDockTo = Enum.InitialDockState.Float,
-		InitialEnabled = false,
-		ForceInitialEnabled = true,
-		FloatingSize = Vector2.new(500, 250),
-		MinimumSize = Vector2.new(500, 250),
-		Enabled = isWidgetEnabled,
-		[Children] = {
-			Computed(function()
-				local widgetEnabled = isWidgetEnabled:get()
-
-				if widgetEnabled and not wasEnabled then
-					wasEnabled = true
-
-					return editor({
-						Value = props.Value,
-						useColor = useColor,
-						Instance = props.Instance,
-                        PropertyName = props.PropertyName,
-					})
-				end
-
-				if not widgetEnabled then
-					wasEnabled = false
-				end
-
-				return nil
-			end, Clean),
-		},
-	})
+	local createdWidget
 
 	local graphButton = button({
 		Color = "white",
@@ -71,13 +41,52 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 		Size = UDim2.new(0, 16, 0, 16),
 		LayoutOrder = props.LayoutOrder,
 		OnClick = function()
+            if createdWidget == nil then 
+                createdWidget = widget({
+                    Name = `Number Sequence Editor ({props.Instance}.{props.PropertyName})`,
+                    Id = HttpService:GenerateGUID(),
+                    InitialDockTo = Enum.InitialDockState.Float,
+                    InitialEnabled = false,
+                    ForceInitialEnabled = true,
+                    FloatingSize = Vector2.new(500, 250),
+                    MinimumSize = Vector2.new(500, 250),
+                    Enabled = isWidgetEnabled,
+                    [Children] = {
+                        Computed(function()
+                            local widgetEnabled = isWidgetEnabled:get()
+            
+                            if widgetEnabled and not wasEnabled then
+                                wasEnabled = true
+            
+                                return editor({
+                                    Value = props.Value,
+                                    useColor = useColor,
+                                    Instance = props.Instance,
+                                    PropertyName = props.PropertyName,
+                                    SupportsEnvelope = props.SupportsEnvelope,
+                                })
+                            end
+            
+                            if not widgetEnabled then
+                                wasEnabled = false
+                            end
+            
+                            return nil
+                        end, Clean),
+                    },
+                })
+            end
+
 			isWidgetEnabled:set(true)
 		end,
 		[Cleanup] = {
 			function()
 				-- https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
-				createdWidget:Destroy()
+
+                if createdWidget then
+                    createdWidget:Destroy()
+                end
 			end,
 		},
 	})

@@ -43,4 +43,4 @@ if fs.isDir("build/client/ui/stories") then
 	fs.removeDir("build/client/ui/stories")
 end
 
-executeCommand("rojo", { "build", `{buildPath}.project.json`, "-o", "build.rbxlx" })
+executeCommand("rojo", { "build", `{buildPath}.project.json`, "-o", "build.rbxm" })

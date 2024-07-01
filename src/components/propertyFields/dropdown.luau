@@ -19,8 +19,8 @@ type props = {
 }
 
 local function dropdownPropertyField(props: props)
-	local parentEnum = props.Value:get().EnumType
-	local selectedOptions = Value({ props.Value:get().Name })
+	local parentEnum = props.Value:get(false).EnumType
+	local selectedOptions = Value({ props.Value:get(false).Name })
 
 	local disconnectObserver = Observer(selectedOptions):onChange(function()
 		props.Value:set(parentEnum[selectedOptions:get()[1]])
@@ -57,7 +57,7 @@ local function dropdownPropertyField(props: props)
 			return options
 		end),
 		SelectedOptions = selectedOptions,
-		Size = UDim2.new(0.75, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0, 20),
 		[Cleanup] = function()
 			disconnectObserver()
 			onPropertyChange()

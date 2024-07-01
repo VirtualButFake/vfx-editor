@@ -1,4 +1,5 @@
 local fusion = require("@packages/fusion")
+local Children = fusion.Children
 local New = fusion.New
 
 local theme = require("@src/theme")
@@ -21,7 +22,7 @@ local function listOption(props: props)
 		Size = props.Size,
 		Position = props.Position,
 		BackgroundTransparency = 1,
-		[fusion.Children] = {
+		[Children] = {
 			New("UIListLayout")({
 				Padding = UDim.new(0, 0),
 				FillDirection = Enum.FillDirection.Horizontal,
@@ -39,7 +40,7 @@ local function listOption(props: props)
 				Name = "ValueContainer",
 				Size = UDim2.new(0.5, 0, 1, 0),
 				BackgroundTransparency = 1,
-				[fusion.Children] = {
+				[Children] = {
 					New("UIListLayout")({
 						FillDirection = Enum.FillDirection.Horizontal,
 						HorizontalAlignment = Enum.HorizontalAlignment.Left,

@@ -21,26 +21,21 @@ local function setup()
 	end
 end
 
-local function getPropertiesForInstance(instance: Instance): { [number]: category }?
+local function getPropertiesForInstance(instance: Instance): ({ [number]: category }?, string?)
 	if not classMap then
 		setup()
 	end
 
-	for _, class in classMap do
+	for idx, class in classMap do
 		if class.is(instance) then
-			return class.properties
+			return class.properties, idx
 		end
 	end
 
-	return nil
+	return nil, nil
 end
 
-type category = {
-    name: string,
-    properties: { [number]: property },
-}
-
-type property = {
+export type property = {
 	name: string,
 	render: (
 		{
@@ -53,6 +48,11 @@ type property = {
 	) -> nil,
 	get: (instance: Instance) -> any,
 	set: (instance: Instance, value: any) -> nil,
+}
+
+export type category = {
+	name: string,
+	properties: { [number]: property },
 }
 
 export type processedProperties = {

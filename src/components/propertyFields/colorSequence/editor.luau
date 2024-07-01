@@ -105,77 +105,100 @@ local function editor(props: props)
 
 	local colorValue = Value(peek(peek(sequenceNodes)[peek(selectedNode)]).Value)
 
-	local createdWidget = widget({
-		Name = "Color Picker",
-		Id = HttpService:GenerateGUID(),
-		InitialDockTo = Enum.InitialDockState.Float,
-		InitialEnabled = false,
-		ForceInitialEnabled = true,
-		FloatingSize = Vector2.new(220, 300),
-		Enabled = isWidgetEnabled,
-		MinimumSize = Vector2.new(200, 300),
-		[Children] = {
-			Computed(function()
-				if isWidgetEnabled:get() then
-					local component = topLayerProvider.new(New("Frame")({
-						Name = "ColorPicker",
-						BackgroundTransparency = 1,
-						Size = UDim2.new(1, 0, 1, 0),
-						[Children] = {
-							New("UIPadding")({
-								PaddingBottom = UDim.new(0, 4),
-								PaddingLeft = UDim.new(0, 4),
-								PaddingRight = UDim.new(0, 4),
-								PaddingTop = UDim.new(0, 4),
-							}),
-							colorPicker({
-								Color = "white",
-								Value = colorValue,
-								Size = UDim2.new(1, 0, 1, 0),
-								OnDragStart = function()
-									temporaryGradient:set(table.clone(peek(props.Value).Keypoints))
-									showTemporaryGradient:set("colorPicker")
-								end,
-								OnDragEnd = function()
-									showTemporaryGradient:set(false)
-								end,
-								OnColorSet = function(color)
-									local allowChange = true
+	local createdWidget
 
-									local newKeypoints = transformKeypoints(function(keypoints)
-										local targetNode = keypoints[selectedNode:get()]
-										keypoints[selectedNode:get()] =
-											ColorSequenceKeypoint.new(targetNode.Time, color)
-									end)
+    local function setupWidget()
+        return widget({
+            Name = "Color Picker",
+            Id = HttpService:GenerateGUID(),
+            InitialDockTo = Enum.InitialDockState.Float,
+            InitialEnabled = false,
+            ForceInitialEnabled = true,
+            FloatingSize = Vector2.new(220, 300),
+            Enabled = isWidgetEnabled,
+            MinimumSize = Vector2.new(200, 300),
+            [Children] = {
+                Computed(function()
+                    if isWidgetEnabled:get() then
+                        return ({
+                            topLayerProvider.new(New("Frame")({
+                                Name = "ColorPicker",
+                                BackgroundTransparency = 1,
+                                Size = UDim2.new(1, 0, 1, 0),
+                                [Children] = {
+                                    New("UIPadding")({
+                                        PaddingBottom = UDim.new(0, 4),
+                                        PaddingLeft = UDim.new(0, 4),
+                                        PaddingRight = UDim.new(0, 4),
+                                        PaddingTop = UDim.new(0, 4),
+                                    }),
+                                    colorPicker({
+                                        Color = "white",
+                                        Value = colorValue,
+                                        Size = UDim2.new(1, 0, 1, 0),
+                                        OnDragStart = function()
+                                            temporaryGradient:set(
+                                                table.clone(peek(props.Value).Keypoints)
+                                            )
+                                            showTemporaryGradient:set("colorPicker")
+                                        end,
+                                        OnDragEnd = function()
+                                            showTemporaryGradient:set(false)
+                                        end,
+                                        OnColorSet = function(color)
+                                            local allowChange = true
 
-									if not allowChange then
-										return
-									end
+                                            local newKeypoints = transformKeypoints(
+                                                function(keypoints)
+                                                    local targetNode =
+                                                        keypoints[selectedNode:get()]
+                                                    keypoints[selectedNode:get()] =
+                                                        ColorSequenceKeypoint.new(
+                                                            targetNode.Time,
+                                                            color
+                                                        )
+                                                end
+                                            )
 
-									props.Value:set(ColorSequence.new(newKeypoints))
-								end,
-								OnColorChange = function(color)
-									if showTemporaryGradient:get() == "colorPicker" then -- if dragging
-										local newKeypoints = transformKeypoints(function(keypoints)
-											local targetNode = keypoints[selectedNode:get()]
-											keypoints[selectedNode:get()] =
-												ColorSequenceKeypoint.new(targetNode.Time, color)
-										end)
+                                            if not allowChange then
+                                                return
+                                            end
 
-										temporaryGradient:set(newKeypoints)
-									end
-								end,
-							}),
-						},
-					}))
+                                            props.Value:set(
+                                                ColorSequence.new(newKeypoints)
+                                            )
+                                        end,
+                                        OnColorChange = function(color)
+                                            if
+                                                showTemporaryGradient:get()
+                                                == "colorPicker"
+                                            then -- if dragging
+                                                local newKeypoints = transformKeypoints(
+                                                    function(keypoints)
+                                                        local targetNode =
+                                                            keypoints[selectedNode:get()]
+                                                        keypoints[selectedNode:get()] =
+                                                            ColorSequenceKeypoint.new(
+                                                                targetNode.Time,
+                                                                color
+                                                            )
+                                                    end
+                                                )
 
-					return component
-				end
+                                                temporaryGradient:set(newKeypoints)
+                                            end
+                                        end,
+                                    }),
+                                },
+                            })),
+                        })[1]
+                    end
 
-				return nil
-			end, Clean),
-		},
-	})
+                    return nil
+                end, Clean),
+            },
+        })
+    end
 
 	local component = topLayerProvider.new(New("Frame")({
 		Name = "ColorSequenceEditor",
@@ -185,7 +208,10 @@ local function editor(props: props)
 			function()
 				-- not destroying it, see https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
-				createdWidget:Destroy()
+
+				if createdWidget then
+					createdWidget:Destroy()
+				end
 			end,
 			observers,
 		},
@@ -311,6 +337,10 @@ local function editor(props: props)
 								colorValue:set(node:get().Value)
 
 								if tick() - lastClick < 0.5 then
+									if createdWidget == nil then
+										createdWidget = setupWidget()
+									end
+
 									isWidgetEnabled:set(true)
 								end
 
@@ -394,8 +424,6 @@ local function editor(props: props)
 								wasMoved = false
 							elseif isVisible then
 								dragStartPosition = timelineButton.Position
-								temporaryGradient:set(table.clone(peek(props.Value).Keypoints))
-								showTemporaryGradient:set("timeline")
 							end
 
 							return isVisible
@@ -437,6 +465,7 @@ local function editor(props: props)
 									end)
 
 									temporaryGradient:set(newKeypoints)
+									showTemporaryGradient:set("timeline")
 								end
 							end,
 							OnMouseButton1Changed = function(pressing, wasHover)
@@ -519,6 +548,10 @@ local function editor(props: props)
 						Stroke = props.useColor("Line", true),
 						Size = UDim2.new(0, 24, 0, 24),
 						OnClick = function()
+                            if createdWidget == nil then
+                                createdWidget = setupWidget()
+                            end
+
 							isWidgetEnabled:set(true)
 						end,
 					}),
@@ -529,6 +562,13 @@ local function editor(props: props)
 						Color = "red",
 						ButtonText = "Delete",
 						Stroke = props.useColor("Line", true),
+                        Disabled = Computed(function()
+                            if selectedNode:get() == 1 or selectedNode:get() == #sequenceNodes:get() then
+                                return true
+                            end
+
+                            return false
+                        end),
 						OnClick = function()
 							local newKeypoints = transformKeypoints(function(keypoints)
 								table.remove(keypoints, selectedNode:get(false))

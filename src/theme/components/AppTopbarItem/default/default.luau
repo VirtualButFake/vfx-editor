@@ -6,7 +6,7 @@ return function(themeName: string)
 			Text = themeName == "Dark" and tailwind.neutral[100] or tailwind.neutral[900],
 		},
 		Hover = {
-			Background = themeName == "Dark" and tailwind.neutral[800] or tailwind.neutral[200],
+			Background = themeName == "Dark" and tailwind.neutral[750] or tailwind.neutral[200],
 			Text = themeName == "Dark" and tailwind.neutral[100] or tailwind.neutral[900],
 		},
 		Pressing = {

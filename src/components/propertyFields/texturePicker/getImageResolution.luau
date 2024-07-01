@@ -31,10 +31,21 @@ local function requestImage(id)
 		return Vector2.new(0, 0)
 	end
 
-	local image = HttpService:RequestAsync({
-		Url = "https://assetdelivery.roproxy.com/v1/asset?id=" .. rawId,
-		Method = "GET",
-	})
+	local success, image = pcall(function()
+		return HttpService:RequestAsync({
+			Url = "https://assetdelivery.roproxy.com/v1/asset?id=" .. rawId,
+			Method = "GET",
+		})
+	end)
+
+    if not success then 
+        -- HTTP requests are disabled
+        warn("HTTP requests are disabled! Cannot fetch image dimensions.")
+
+        image = {
+            Success = false,
+        }
+    end
 
 	if image.Success then
 		local dimensions = getPngDimensions(image.Body)

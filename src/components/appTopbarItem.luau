@@ -6,25 +6,23 @@ local Tween = fusion.Tween
 
 local Children = fusion.Children
 local New = fusion.New
+local Event = fusion.OnEvent
 
 local Computed = fusion.Computed
 local Value = fusion.Value
 
 local studioComponents = require("@packages/studioComponents")
-local baseButton = studioComponents.base.button
+local baseFrame = studioComponents.base.frame
 local baseText = studioComponents.base.text
 local baseIcon = studioComponents.base.icon
 local button = studioComponents.common.button
 
 local theme = require("@src/theme")
 
-local function interpolate(a, b, t)
-	return a + (b - a) * t
-end
-
 type props = {
 	Item: Instance,
 	Selected: fusion.Computed<boolean>,
+    LayoutOrder: number,
 	OnClick: () -> nil,
 	OnClose: () -> nil,
 }
@@ -54,25 +52,33 @@ local function AppTopbarItem(props: props)
 		end)
 	)
 
-	return New("Frame")({
+	local classIcon = StudioService:GetClassIcon(props.Item.ClassName)
+
+	return New("TextButton")({
 		Name = "AppTopbarItemWrapper",
+		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 1,
 		Size = UDim2.new(0, 0, 1, 0),
-		AutomaticSize = Enum.AutomaticSize.X,
+		[Event("MouseButton1Down")] = function()
+			isPressing:set(true)
+		end,
+		[Event("MouseEnter")] = function()
+			isHovering:set(true)
+		end,
+		[Event("MouseButton1Up")] = function()
+			isPressing:set(false)
+			props.OnClick()
+		end,
+		[Event("MouseLeave")] = function()
+			isHovering:set(false)
+			isPressing:set(false)
+		end,
 		[Children] = {
-			baseButton({
+			baseFrame({
 				Name = "AppTopbarItem",
 				AutomaticSize = Enum.AutomaticSize.XY,
 				Appearance = useColor("Background", true),
 				Stroke = useColor("Stroke", true),
-				OnHover = function(state)
-					isHovering:set(state)
-				end,
-				OnMouseButton1Changed = function(isPressed)
-					isPressing:set(isPressed)
-				end,
-				OnClick = props.OnClick,
-				DisableHoverLighting = true,
 				Size = Spring(
 					Computed(function()
 						if props.Selected:get() then
@@ -88,7 +94,7 @@ local function AppTopbarItem(props: props)
 					-- this REALLY shouldnt be necessary
 					New("Frame")({
 						Name = "StrokeFiller",
-						AnchorPoint = Vector2.new(0, 0.5),
+						AnchorPoint = Vector2.new(0, 1),
 						BackgroundColor3 = Tween(
 							Computed(function()
 								return useColor("Background").color
@@ -97,13 +103,17 @@ local function AppTopbarItem(props: props)
 						),
 						BackgroundTransparency = Tween(
 							Computed(function()
-								return useColor("Background").transparency
+								if props.Selected:get() then
+									return useColor("Background").transparency
+								else
+									return 1
+								end
 							end),
 							TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 						),
-						Position = UDim2.new(0, 0, 0.5, 0),
+						Position = UDim2.new(0, 0, 1, 0),
 						Size = UDim2.new(1, 0, 0.1, 0),
-						ZIndex = 0,
+						ZIndex = 2,
 					}),
 					New("Frame")({
 						Name = "CornerFiller",
@@ -175,21 +185,23 @@ local function AppTopbarItem(props: props)
 							}),
 							baseIcon({
 								Name = "Icon",
-								Icon = StudioService:GetClassIcon(props.Item.ClassName).Image,
+								Icon = classIcon.Image,
+								ImageRectOffset = classIcon.ImageRectOffset,
+								ImageRectSize = classIcon.ImageRectSize,
 								Color = useColor("Text", true),
 								LayoutOrder = 0,
 							}),
 						},
 					}),
 					button({
-						Name = "Close",
-						Icon = { Name = "x", Size = 16 },
-						Color = "gray",
-						Variant = "ghost",
-						Margin = 1,
-						LayoutOrder = 2,
-						OnClick = props.OnClose,
-					}),
+                        Name = "Close",
+                        Icon = { Name = "x", Size = 16 },
+                        Color = "gray",
+                        Variant = "ghost",
+                        Margin = 1,
+                        LayoutOrder = 2,
+                        OnClick = props.OnClose,
+                    }),
 					New("UIListLayout")({
 						FillDirection = Enum.FillDirection.Horizontal,
 						HorizontalAlignment = Enum.HorizontalAlignment.Center,

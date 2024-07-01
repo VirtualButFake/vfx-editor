@@ -57,7 +57,7 @@ return function()
 	particles.CFrame = CFrame.new(273.922516, 4.19997025, -437.61142, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 	particles.WorldCFrame = CFrame.new(547.845032, 8.39994049, -875.222839, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 
-	local specs = Instance.new("ParticleEmitter")
+	--[[local specs = Instance.new("ParticleEmitter")
 	specs.Name = "Specs"
 	specs.Brightness = 4
 	specs.Color = ColorSequence.new({
@@ -76,7 +76,7 @@ return function()
 	specs.SpreadAngle = Vector2.new(-360, 360)
 	specs.Texture = "rbxassetid://8030760338"
 	specs.ZOffset = 2
-	specs.Parent = particles
+	specs.Parent = particles]]
 
 	local drops = Instance.new("ParticleEmitter")
 	drops.Name = "Drops"
@@ -150,6 +150,9 @@ return function()
 	)
 	drops.ZOffset = 2
 	drops.Parent = particles
+
+	local beam = Instance.new("Beam")
+	beam.Parent = ice
 
 	particles.Parent = ice
 	ice.Parent = workspace

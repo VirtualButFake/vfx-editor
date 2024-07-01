@@ -16,7 +16,7 @@ type props = {
 }
 
 local function inputPropertyField(props: props)
-	local inputDisplay = Value(tostring(props.Value:get()))
+	local inputDisplay = Value(tostring(props.Value:get(false)))
 
 	local onPropertyChange = Observer(props.Value):onChange(function()
 		inputDisplay:set(tostring(props.Value:get()))

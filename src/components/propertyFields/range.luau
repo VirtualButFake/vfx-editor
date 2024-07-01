@@ -16,8 +16,8 @@ local tailwind = require("@packages/tailwind")
 local theme = require("@src/theme")
 
 local function roundDecimals(value: number, decimals: number): number
-    local multiplier = 10 ^ decimals
-    return math.floor(value * multiplier + 0.5) / multiplier
+	local multiplier = 10 ^ decimals
+	return math.floor(value * multiplier + 0.5) / multiplier
 end
 
 type props = {
@@ -29,21 +29,19 @@ type props = {
 }
 
 local function sliderPropertyField(props: props)
-    local function roundToStep(value: number): number
-        local closestStep = math.round((value - props.Min) / props.Step) * props.Step + props.Min
-    
-        if closestStep <= props.Max and closestStep >= props.Min then
-            return roundDecimals(closestStep, 3)
-        else
-            local roundingFunction = closestStep < props.Min and math.ceil or math.floor
-            return roundDecimals(roundingFunction((value - props.Min) / props.Step) * props.Step + props.Min, 3)
-        end
-    end
+	local function roundToStep(value: number): number
+		local closestStep = math.round((value - props.Min) / props.Step) * props.Step + props.Min
 
-	local textValue = Value(
-		`{roundToStep(props.Value:get().Min)}, {roundToStep(props.Value:get().Max)}`
-	)
-	local sliderValue = Value(props.Value:get())
+		if closestStep <= props.Max and closestStep >= props.Min then
+			return roundDecimals(closestStep, 3)
+		else
+			local roundingFunction = closestStep < props.Min and math.ceil or math.floor
+			return roundDecimals(roundingFunction((value - props.Min) / props.Step) * props.Step + props.Min, 3)
+		end
+	end
+
+	local textValue = Value(`{roundToStep(props.Value:get(false).Min)}, {roundToStep(props.Value:get(false).Max)}`)
+	local sliderValue = Value(props.Value:get(false))
 
 	local connections = {
 		Observer(sliderValue):onChange(function()
@@ -119,7 +117,9 @@ local function sliderPropertyField(props: props)
 					for _, value in ipairs(values) do
 						if not tonumber(value) then
 							local currentSliderValue = sliderValue:get()
-							textValue:set(`{roundToStep(currentSliderValue.Min)}, {roundToStep(currentSliderValue.Max)}`)
+							textValue:set(
+								`{roundToStep(currentSliderValue.Min)}, {roundToStep(currentSliderValue.Max)}`
+							)
 							return
 						end
 					end

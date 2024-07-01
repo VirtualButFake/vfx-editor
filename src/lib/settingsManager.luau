@@ -35,7 +35,6 @@ end
 
 function settingsManager.set(key: string, value: any)
 	plugin:SetSetting(SETTING_PREFIX .. key, value)
-	print("Set plugin", plugin:GetSetting(SETTING_PREFIX .. key))
 
 	if settingsManager._localStorage[key] then
 		settingsManager._localStorage[key]:set(value, true)

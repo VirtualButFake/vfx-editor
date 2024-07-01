@@ -383,7 +383,8 @@ type props = {
 	Value: fusion.Value<NumberSequence>,
 	useColor: theme.useColorFunction,
 	Instance: Instance,
-    PropertyName: string,
+	PropertyName: string,
+    SupportsEnvelope: boolean,
 }
 
 local GRAPH_UPDATE_HZ = 45
@@ -413,7 +414,7 @@ local function numberSequenceEditor(props: props)
 	})
 
 	local lastGraphUpdate = 0
-    local attributeName = "_vfxEditorGraph" .. props.PropertyName
+	local attributeName = "_vfxEditorGraph" .. props.PropertyName
 
 	local selectedDot: fusion.Value<{ point }> = Value(nil)
 	local inputTimeText = Value("")
@@ -644,7 +645,7 @@ local function numberSequenceEditor(props: props)
 								PixelScale = 4,
 								Resolution = 200,
 							}),
-							function(convertToVector, bounds, size)
+							props.SupportsEnvelope and function(convertToVector, bounds, size)
 								return Computed(function()
 									local usedSelectedDot = selectedDot:get()
 
@@ -652,16 +653,22 @@ local function numberSequenceEditor(props: props)
 										local usedDot = usedSelectedDot:get()
 										local pointPos = Vector2.new(usedDot.index, usedDot.value)
 
+										local usedEnvelope = math.clamp(usedDot.envelope, 0, 1)
+										local distanceToBounds = math.min(
+											math.clamp(math.min(1 - usedDot.value, usedDot.value), 0, 1),
+											usedEnvelope
+										)
+
 										return {
 											handleComponent({
 												HandlePosition = pointPos
-													+ Vector2.new(0, math.max(usedDot.envelope, ENVELOPE_SPACING)),
+													+ Vector2.new(0, math.max(distanceToBounds, ENVELOPE_SPACING)),
 												PointPosition = pointPos,
 												Color = HANDLE_COLOR,
 											})(convertToVector, bounds, size),
 											handleComponent({
 												HandlePosition = pointPos
-													- Vector2.new(0, math.max(usedDot.envelope, ENVELOPE_SPACING)),
+													- Vector2.new(0, math.max(distanceToBounds, ENVELOPE_SPACING)),
 												PointPosition = pointPos,
 												Color = HANDLE_COLOR,
 											})(convertToVector, bounds, size),
@@ -670,7 +677,7 @@ local function numberSequenceEditor(props: props)
 
 									return
 								end, Clean)
-							end,
+							end or nil,
 							function(convertToVector, bounds, size)
 								return Computed(function()
 									local usedSelectedDot = selectedDot:get()
@@ -739,7 +746,7 @@ local function numberSequenceEditor(props: props)
 						BackgroundTransparency = 1,
 						Size = UDim2.new(1, 0, 1, 0),
 						[Children] = {
-							ForPairs({ -1, 1 }, function(index, value)
+							props.SupportsEnvelope and ForPairs({ -1, 1 }, function(index, value)
 								local handle = Value(nil)
 								local isHovering = Value(false)
 								local isDragging = Value(false)
@@ -817,7 +824,7 @@ local function numberSequenceEditor(props: props)
 
 														if usedSelectedDot then
 															local dotData = usedSelectedDot:get()
-															local diff = math.abs(dotData.value - verticalProgress)
+															local diff = math.clamp((dotData.value - verticalProgress) * -value, 0, 1)
 															local distanceToBounds = math.clamp(
 																math.min(1 - dotData.value, dotData.value),
 																0,
@@ -835,7 +842,7 @@ local function numberSequenceEditor(props: props)
 											end),
 										},
 									})
-							end, Clean),
+							end, Clean) or nil,
 							ForPairs({ 1, 2 }, function(index, value)
 								local HANDLE_INDEX = "handle" .. tostring(value)
 
@@ -1423,7 +1430,7 @@ local function numberSequenceEditor(props: props)
 							}),
 						},
 					}),
-					New("Frame")({
+					props.SupportsEnvelope and New("Frame")({
 						Name = "Envelope",
 						AutomaticSize = Enum.AutomaticSize.XY,
 						BackgroundTransparency = 1,
@@ -1472,7 +1479,7 @@ local function numberSequenceEditor(props: props)
 								end,
 							}),
 						},
-					}),
+					}) or nil,
 					button({
 						Size = UDim2.new(0, 24, 0, 24),
 						Icon = "trash",

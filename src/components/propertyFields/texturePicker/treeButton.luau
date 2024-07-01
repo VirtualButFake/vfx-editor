@@ -12,6 +12,7 @@ local Value = fusion.Value
 local studioComponents = require("@packages/studioComponents")
 local menuEntry = studioComponents.utility.menuEntry
 local baseText = studioComponents.base.text
+local icon = studioComponents.base.icon
 
 local fusionUtils = require("@packages/fusionUtils")
 local use = fusionUtils.use
@@ -77,44 +78,44 @@ local function treeButton(props: props)
 		return index, nil
 	end, Clean)]]
 
-    local function refreshData(content)
-        local newSubButtons = {}
+	local function refreshData(content)
+		local newSubButtons = {}
 
-        for index, value in content do
-            if value.content then
-                local clonedPath = table.clone(props.Path)
-                table.insert(clonedPath, value.name)
+		for index, value in content do
+			if value.content then
+				local clonedPath = table.clone(props.Path)
+				table.insert(clonedPath, value.name)
 
-                newSubButtons[index] = treeButton({
-                    Name = value.name,
-                    Icon = value.icon,
-                    CurrentPath = props.CurrentPath,
-                    Content = value.content,
-                    OnClick = props.OnClick,
-                    Path = clonedPath,
-                    Query = props.Query,
-                    DisabledPath = props.DisabledPath,
-                    DisabledCascades = props.DisabledCascades,
-                    IsSelfDisabled = props.DisabledCascades and isDisabled,
-                    IsItem = value.isItem,
-                })
-            end
-        end
+				newSubButtons[index] = treeButton({
+					Name = value.name,
+					Icon = value.icon,
+					CurrentPath = props.CurrentPath,
+					Content = value.content,
+					OnClick = props.OnClick,
+					Path = clonedPath,
+					Query = props.Query,
+					DisabledPath = props.DisabledPath,
+					DisabledCascades = props.DisabledCascades,
+					IsSelfDisabled = props.DisabledCascades and isDisabled,
+					IsItem = value.isItem,
+				})
+			end
+		end
 
-        subButtons:set(newSubButtons)
-    end
+		subButtons:set(newSubButtons)
+	end
 
-    local contentObserver
-    if typeof(props.Content) == "table" and (props.Content :: any).get then 
-        local content = props.Content :: fusion.Value<{ textureList }>
-        contentObserver = Observer(props.Content):onChange(function()
-            refreshData(content:get())
-        end)
+	local contentObserver
+	if typeof(props.Content) == "table" and (props.Content :: any).get then
+		local content = props.Content :: fusion.Value<{ textureList }>
+		contentObserver = Observer(props.Content):onChange(function()
+			refreshData(content:get())
+		end)
 
-        refreshData(content:get())
-    else 
-        refreshData(props.Content)
-    end
+		refreshData(content:get())
+	else
+		refreshData(props.Content)
+	end
 
 	local amountOfTextures = Computed(function()
 		local count = 0
@@ -128,6 +129,10 @@ local function treeButton(props: props)
 
 		return count
 	end)
+
+	local buttonIcon = typeof(props.Icon) == "string" and {
+		Image = props.Icon,
+	} or props.Icon or {}
 
 	return New("Frame")({
 		Name = props.Name,
@@ -155,9 +160,9 @@ local function treeButton(props: props)
 
 			return query == "" or props.Name:lower():find(query) or iterate(use(props.Content))
 		end),
-        [Cleanup] = {
-            contentObserver
-        },
+		[Cleanup] = {
+			contentObserver,
+		},
 		[Children] = {
 			New("UIListLayout")({
 				FillDirection = Enum.FillDirection.Vertical,
@@ -183,9 +188,17 @@ local function treeButton(props: props)
 						Option = {
 							Label = props.Name,
 							Color = "gray",
-							Icon = props.Name == "Home" and "home" or props.Icon,
+							Icon = props.Name == "Home" and "home" or buttonIcon.Image,
 							Disabled = isDisabled,
 							Slots = {
+								Left = buttonIcon.Image and function(useSlotColor)
+									return icon({
+										Color = useSlotColor("Text", true),
+										Icon = props.Name == "Home" and "home" or buttonIcon.Image,
+										ImageRectSize = buttonIcon.ImageRectSize,
+                                        ImageRectOffset = buttonIcon.ImageRectOffset,
+									})
+								end or nil,
 								Center = function(useSlotColor)
 									return baseText({
 										Name = "Label",

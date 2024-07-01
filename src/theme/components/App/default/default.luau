@@ -9,6 +9,9 @@ return function(themeName: string)
 				transparency = 0,
 				shadow = 4,
 			},
+            Text = {
+                color = themeName == "Dark" and tailwind.neutral[100] or tailwind.neutral[900],
+            },
 			Stroke = themeName == "Dark" and tailwind.neutral[700] or tailwind.neutral[300],
 		},
 	}
