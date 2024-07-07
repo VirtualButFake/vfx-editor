@@ -2,11 +2,13 @@ local Selection = game:GetService("Selection")
 
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
+local Cleanup = fusion.Cleanup
 local New = fusion.New
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local ForPairs = fusion.ForPairs
+local Observer = fusion.Observer
 local Value = fusion.Value
 
 local studioComponents = require("@packages/studioComponents")
@@ -31,6 +33,11 @@ local function AppTopbar(props: props)
 		ScrollBarThickness = 0,
 		ScrollingDirection = Enum.ScrollingDirection.X,
 		Size = UDim2.new(1, 0, 0, 32),
+		[Cleanup] = {
+			Observer(props.SelectedInstance):onChange(function()
+				visualSelectedInstance:set(props.SelectedInstance:get())
+			end),
+		},
 		[Children] = {
 			New("UIFlexItem")({
 				FlexMode = Enum.UIFlexMode.Fill,
@@ -132,22 +139,22 @@ local function AppTopbar(props: props)
 											closeSelf()
 										end,
 									},
-                                    {
-                                        Label = "Close to right",
-                                        Icon = "panel-right-close",
-                                        Callback = function()
-                                            local oldItems = props.Items:get()
-                                            local newItems = {}
+									{
+										Label = "Close to right",
+										Icon = "panel-right-close",
+										Callback = function()
+											local oldItems = props.Items:get()
+											local newItems = {}
 
-                                            for i = 1, index do
-                                                table.insert(newItems, oldItems[i])
-                                            end
+											for i = 1, index do
+												table.insert(newItems, oldItems[i])
+											end
 
-                                            props.Items:set(newItems)
+											props.Items:set(newItems)
 
-                                            closeSelf()
-                                        end,
-                                    },
+											closeSelf()
+										end,
+									},
 									{
 										Label = "Close others",
 										Icon = "copy-x",

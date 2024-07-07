@@ -1,8 +1,11 @@
+local StudioService = game:GetService("StudioService")
 local Studio = settings().Studio
 
 local themeFramework = require("@packages/themeFramework")
 local tailwind = require("@packages/tailwind")
 local fusion = require("@packages/fusion")
+local Clean = fusion.cleanup
+local Computed = fusion.Computed
 local Value = fusion.Value
 
 export type color = themeFramework.color
@@ -26,24 +29,57 @@ local function reloadTheme(self: themeFramework.themeFramework, themeName)
 end
 
 local theme = themeFramework.new(script.components, reloadTheme)
+local currentTheme = Value(Studio.Theme.Name)
 
-Studio.ThemeChanged:Connect(function()
-	theme:load(theme:build(Studio.Theme.Name))
-end)
+local connections = {
+	Studio.ThemeChanged:Connect(function()
+		if theme == nil then
+			return
+		end
+
+		theme:load(theme:build(Studio.Theme.Name))
+		currentTheme:set(Studio.Theme.Name)
+	end),
+	script.Destroying:Connect(function()
+		theme.destroy()
+	end),
+}
 
 theme:load(theme:build(Studio.Theme.Name))
 
+local wasDestroyed = false
+
 -- this is suboptimal, but types refused to work if i did it the other way around
-return setmetatable(theme, {
-	__index = function(_, key)
-		if key == "global" then
-			return globals
+return setmetatable({
+	global = globals,
+	getClassIcon = function(className)
+		return Computed(function()
+			currentTheme:get() -- register dependency so it updates when the theme changes
+			return StudioService:GetClassIcon(className)
+		end)
+	end,
+	destroy = function()
+		if not wasDestroyed then
+			wasDestroyed = true
 		end
 
-		return themeFramework[key]
+		Clean(connections)
+		theme = nil
 	end,
-}) :: themeFramework.themeFramework & { global: {
-	font: Font,
-	isDark: fusion.Value<boolean>,
-	background: fusion.Value<Color3>,
-} }
+}, {
+	__index = theme,
+}) :: themeFramework.themeFramework & {
+	global: {
+		font: Font,
+		isDark: fusion.Value<boolean>,
+		background: fusion.Value<Color3>,
+	},
+	destroy: () -> (),
+	getClassIcon: (
+		className: string
+	) -> fusion.Computed<{
+		Image: string,
+		ImageRectSize: Vector2,
+		ImageRectOffset: Vector2,
+	}>,
+}

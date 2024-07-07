@@ -18,6 +18,12 @@ local function checkboxPropertyField(props: props)
 		},
 		State = props.Value,
 		LayoutOrder = props.LayoutOrder,
+        Margin = 4,
+        Icon = {
+            Name = "check",
+            Size = 12,
+        },
+        Size = UDim2.new(0, 20, 0, 20),
 	})
 end
 

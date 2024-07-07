@@ -75,6 +75,10 @@ local function numberSequencePropertyField(props: props)
 		ButtonText = Computed(function()
 			local path = texturePath:get()
 
+            if path[#path] == "Home" then 
+                path = nil
+            end
+
 			if not props.Value:get() or props.Value:get().Texture == "" then
 				return "None"
 			end

@@ -9,6 +9,8 @@ local colorSequence = require("@components/propertyFields/colorSequence")
 local numberSequence = require("@components/propertyFields/numberSequence")
 local texturePicker = require("@components/propertyFields/texturePicker")
 
+local scaleUtils = require("@src/lib/scaleUtils")
+
 function class.is(instance: Instance)
 	return instance:IsA("ParticleEmitter")
 end
@@ -17,6 +19,30 @@ class.properties = {
 	{
 		name = "Name",
 		render = input,
+	},
+	{
+		name = "Scale",
+		render = input,
+		get = function(instance)
+			return instance:GetAttribute("_vfxEditorScale") or 1
+		end,
+		set = function(instance: Beam, value)
+			-- this number should be at least 0.001
+			local number = tonumber(value)
+
+			if not number then
+				return
+			end
+
+			if number < 0.001 then
+				number = 0.001
+			end
+
+			local oldScale = instance:GetAttribute("_vfxEditorScale") or 1
+			-- scale our instance relative to the old scale
+			scaleUtils.scaleInstance(instance, number / oldScale)
+			instance:SetAttribute("_vfxEditorScale", number)
+		end,
 	},
 	{
 		name = "Appearance",
@@ -75,24 +101,28 @@ class.properties = {
 				name = "Size",
 				render = function(props, useColor)
 					return numberSequence({
-                        SupportsEnvelope = true,
-                        Instance = props.Instance,
-                        PropertyName = props.PropertyName,
-                        LayoutOrder = props.LayoutOrder,
-                        Value = props.Value,
-                    }, useColor)
+						Instance = props.Instance,
+						PropertyName = props.PropertyName,
+						Value = props.Value,
+						LayoutOrder = props.LayoutOrder,
+						SupportsEnvelope = true,
+						Min = 0,
+						Max = 10,
+					}, useColor)
 				end,
 			},
 			{
 				name = "Squash",
 				render = function(props, useColor)
 					return numberSequence({
-                        SupportsEnvelope = true,
-                        Instance = props.Instance,
-                        PropertyName = props.PropertyName,
-                        LayoutOrder = props.LayoutOrder,
-                        Value = props.Value,
-                    }, useColor)
+						Instance = props.Instance,
+						PropertyName = props.PropertyName,
+						Value = props.Value,
+						LayoutOrder = props.LayoutOrder,
+						SupportsEnvelope = true,
+						Min = -3,
+						Max = 3,
+					}, useColor)
 				end,
 			},
 			{
@@ -102,10 +132,11 @@ class.properties = {
 					return `{instance.Texture},{instance.FlipbookLayout.Name}`
 				end,
 				set = function(instance: ParticleEmitter, value)
-                    local split = value:split(",")
+					local split = value:split(",")
 
 					instance.Texture = split[1]
-					instance.FlipbookLayout = Enum.ParticleFlipbookLayout[split[2] :: any] :: Enum.ParticleFlipbookLayout
+					instance.FlipbookLayout =
+						Enum.ParticleFlipbookLayout[split[2] :: any] :: Enum.ParticleFlipbookLayout
 
 					if instance.FlipbookFramerate == NumberRange.new(1) then
 						instance.FlipbookFramerate = NumberRange.new(30)
@@ -116,12 +147,14 @@ class.properties = {
 				name = "Transparency",
 				render = function(props, useColor)
 					return numberSequence({
-                        SupportsEnvelope = true,
-                        Instance = props.Instance,
-                        PropertyName = props.PropertyName,
-                        LayoutOrder = props.LayoutOrder,
-                        Value = props.Value,
-                    }, useColor)
+						Instance = props.Instance,
+						PropertyName = props.PropertyName,
+						Value = props.Value,
+						LayoutOrder = props.LayoutOrder,
+						SupportsEnvelope = true,
+						Min = 0,
+						Max = 1,
+					}, useColor)
 				end,
 			},
 			{

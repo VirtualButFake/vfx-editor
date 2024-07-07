@@ -1,14 +1,10 @@
 local Selection = game:GetService("Selection")
-local StudioService = game:GetService("StudioService")
 
 local fusion = require("@packages/fusion")
-
-local Tween = fusion.Tween
 
 local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local New = fusion.New
-local Event = fusion.OnEvent
 local Out = fusion.Out
 
 local Clean = fusion.cleanup
@@ -20,12 +16,16 @@ local Value = fusion.Value
 
 local studioComponents = require("@packages/studioComponents")
 local baseIcon = studioComponents.base.icon
+local baseImageLabel = studioComponents.base.imageLabel
 local baseText = studioComponents.base.text
 local button = studioComponents.common.button
 local contextMenu = studioComponents.common.contextMenu
 
 local fusionUtils = require("@packages/fusionUtils")
 local peek = fusionUtils.peek
+local awaitLayer = fusionUtils.awaitLayer
+
+local signal = require("@packages/signal")
 
 local theme = require("@src/theme")
 
@@ -54,6 +54,13 @@ export type instanceMapEntry = {
 	linesCascading: { [number]: { line } },
 }
 
+-- export this type up the chain so that we dont have to redefine the types
+export type events = {
+	OnItemClicked: signal.Signal<Instance>,
+	OnPlusClicked: signal.Signal<Instance>,
+	AddTab: signal.Signal<Instance>,
+}
+
 type props = {
 	LayoutOrder: number,
 	Instance: Instance,
@@ -66,9 +73,9 @@ type props = {
 		Children: fusion.Value<{ Instance }>,
 		Lines: fusion.Value<{ [number]: string }>,
 	}?,
-	OnPlusClicked: (instance: Instance) -> (),
-	AddTab: (instance: Instance) -> (),
+	SharedSelectedPropertyState: fusion.Value<{ [Instance]: { string } }>,
 	InstanceMap: fusion.Computed<instanceMapEntry>,
+	Events: events,
 }
 
 local TREE_TAB_SIZE = 24
@@ -104,10 +111,18 @@ local function instanceTreeItem(props: props)
 	end)
 
 	local cascadingLines = Computed(function()
+		if instanceInMap:get() == nil then
+			return {}
+		end
+
 		return instanceInMap:get().linesCascading
 	end)
 
 	local lineState = Computed(function()
+		if instanceInMap:get() == nil or props.Depth == 0 then
+			return {}
+		end
+
 		return instanceInMap:get().linesStart
 	end)
 
@@ -170,9 +185,8 @@ local function instanceTreeItem(props: props)
 	local showSubContent = Value(true)
 
 	local children = Value(props.Instance:GetChildren())
-	local classIcon = StudioService:GetClassIcon(props.Instance.ClassName)
+	local classIcon = theme.getClassIcon(props.Instance.ClassName)
 
-	local isHoveringHeader = Value(false)
 	local isContextMenuVisible = Value(false)
 
 	local function closeSelf()
@@ -183,7 +197,12 @@ local function instanceTreeItem(props: props)
 		end
 	end
 
-	return New("Frame")({
+	local lastClick = 0
+
+	local isCtrlHeld = Value(false)
+	local keyConnections = {}
+
+	local component = New("Frame")({
 		Name = "InstanceTreeItem",
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -196,7 +215,11 @@ local function instanceTreeItem(props: props)
 				end
 
 				-- recursively search through all children, see if any of them are visible
-				local function searchChildren(entry: instanceMapEntry): boolean
+				local function searchChildren(entry: instanceMapEntry?): boolean
+					if entry == nil then
+						return false
+					end
+
 					local doesEntryMatch = string.find(entry.instance.Name:lower(), props.Query:get():lower())
 
 					if doesEntryMatch then
@@ -215,31 +238,35 @@ local function instanceTreeItem(props: props)
 				return searchChildren(instanceInMap:get())
 			elseif props.SearchMode:get()[1] == "properties" and props.Query:get() ~= "" then
 				-- recursively iterate through all instance maps, see if any of the properties or categories match
-                local function searchProperties(entry: instanceMapEntry): boolean
-                    if entry.properties then
-                        for _, category in entry.properties do
-                            if string.find(category.name:lower(), props.Query:get():lower()) then
-                                return true
-                            end
+				local function searchProperties(entry: instanceMapEntry?): boolean
+					if entry == nil then
+						return false
+					end
 
-                            if category.properties then
-                                for _, property in category.properties do
-                                    if string.find(property.name:lower(), props.Query:get():lower()) then
-                                        return true
-                                    end
-                                end
-                            end
-                        end
-                    end
+					if entry.properties then
+						for _, category in entry.properties do
+							if string.find(category.name:lower(), props.Query:get():lower()) then
+								return true
+							end
 
-                    for _, child in entry.children do
-                        if searchProperties(child) then
-                            return true
-                        end
-                    end
+							if category.properties then
+								for _, property in category.properties do
+									if string.find(property.name:lower(), props.Query:get():lower()) then
+										return true
+									end
+								end
+							end
+						end
+					end
 
-                    return false
-                end
+					for _, child in entry.children do
+						if searchProperties(child) then
+							return true
+						end
+					end
+
+					return false
+				end
 
 				return searchProperties(instanceInMap:get())
 			end
@@ -247,6 +274,7 @@ local function instanceTreeItem(props: props)
 			return true
 		end),
 		[Cleanup] = {
+			keyConnections,
 			onNameChanged,
 			props.Instance.ChildAdded:Connect(function(child)
 				if not game:IsAncestorOf(props.Instance) then
@@ -286,6 +314,7 @@ local function instanceTreeItem(props: props)
 				Name = "MainContent",
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, 24),
+				ZIndex = 2,
 				[Children] = {
 					New("Frame")({
 						Name = "LineContainer",
@@ -299,7 +328,7 @@ local function instanceTreeItem(props: props)
 										BackgroundTransparency = 1,
 										Position = UDim2.new(
 											0,
-											math.clamp((props.Depth - 1) * TREE_TAB_SIZE, 0, math.huge) + 8,
+											math.clamp((props.Depth - 1) * TREE_TAB_SIZE, 0, math.huge) + 10,
 											0,
 											0
 										),
@@ -315,7 +344,7 @@ local function instanceTreeItem(props: props)
 								return nil
 							end, Clean),
 							ForPairs(cascadingLines, function(depth, states)
-								if depth == props.Depth then
+								if depth >= props.Depth then
 									return depth, nil
 								end
 
@@ -325,7 +354,7 @@ local function instanceTreeItem(props: props)
 										BackgroundTransparency = 1,
 										Position = UDim2.new(
 											0,
-											math.clamp((depth - 1) * TREE_TAB_SIZE, 0, math.huge) + 8,
+											math.clamp((depth - 1) * TREE_TAB_SIZE, 0, math.huge) + 10,
 											0,
 											0
 										),
@@ -340,40 +369,27 @@ local function instanceTreeItem(props: props)
 						},
 					}),
 					contextMenu(
-						New("Frame")({
+						button({
+							Color = "neutral",
+							Variant = "ghost",
+							DisableHoverLighting = true,
+							AutomaticSize = Enum.AutomaticSize.None,
 							Name = "Header",
 							AnchorPoint = Vector2.new(1, 0),
-							BackgroundColor3 = Computed(function()
-								return useColor("Background").color
-							end),
-							BackgroundTransparency = Tween(
-								Computed(function()
-									if isHoveringHeader:get() then
-										return 0.5
-									end
-
-									return 1
-								end),
-								TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
-							),
 							Position = UDim2.new(1, 0, 0, 0),
 							Size = UDim2.new(1, -props.Depth * TREE_TAB_SIZE, 1, 0),
-							[Event("MouseEnter")] = function()
-								isHoveringHeader:set(true)
+							ContentFullSize = true,
+							OnClick = function()
+								local now = tick()
+
+								if now - lastClick < 0.35 then
+									props.Events.AddTab:Fire(props.Instance)
+								end
+
+								lastClick = now
+								props.Events.OnItemClicked:Fire(props.Instance)
 							end,
-							[Event("MouseLeave")] = function()
-								isHoveringHeader:set(false)
-							end,
-							[Children] = {
-								New("UICorner")({
-									CornerRadius = UDim.new(0, 4),
-								}),
-								New("UIPadding")({
-									PaddingBottom = UDim.new(0, 2),
-									PaddingLeft = UDim.new(0, 2),
-									PaddingRight = UDim.new(0, 2),
-									PaddingTop = UDim.new(0, 2),
-								}),
+							Content = {
 								New("UIListLayout")({
 									FillDirection = Enum.FillDirection.Horizontal,
 									HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -387,6 +403,9 @@ local function instanceTreeItem(props: props)
 									BackgroundTransparency = 1,
 									Size = UDim2.new(0, 0, 0, 0),
 									[Children] = {
+										New("UIFlexItem")({
+											FlexMode = Enum.UIFlexMode.Fill,
+										}),
 										New("UIListLayout")({
 											FillDirection = Enum.FillDirection.Horizontal,
 											HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -394,12 +413,19 @@ local function instanceTreeItem(props: props)
 											SortOrder = Enum.SortOrder.LayoutOrder,
 											VerticalAlignment = Enum.VerticalAlignment.Center,
 										}),
-										baseIcon({
+										baseImageLabel({
 											Name = "Icon",
-											Icon = classIcon.Image,
-											ImageRectSize = classIcon.ImageRectSize,
-											ImageRectOffset = classIcon.ImageRectOffset,
-											Color = useColor("Text", true),
+											Image = Computed(function()
+												return classIcon:get().Image
+											end),
+											ImageRectSize = Computed(function()
+												return classIcon:get().ImageRectSize
+											end),
+											ImageRectOffset = Computed(function()
+												return classIcon:get().ImageRectOffset
+											end),
+											Appearance = useColor("Text", true),
+											Size = UDim2.new(0, 16, 0, 16),
 											LayoutOrder = 0,
 										}),
 										baseText({
@@ -413,7 +439,7 @@ local function instanceTreeItem(props: props)
 									},
 								}),
 								New("Frame")({
-									Name = "Arrow",
+									Name = "Buttons",
 									BackgroundTransparency = 1,
 									Size = UDim2.new(0, 0, 1, 0),
 									[Children] = {
@@ -436,6 +462,7 @@ local function instanceTreeItem(props: props)
 										Computed(function()
 											if
 												not instanceCategories
+												or instanceInMap:get() == nil
 												or #instanceCategories == 0 and #instanceInMap:get().children == 0
 											then
 												return nil
@@ -491,7 +518,7 @@ local function instanceTreeItem(props: props)
 										Label = "Insert Instance",
 										Icon = "plus",
 										Callback = function()
-											props.OnPlusClicked(props.Instance)
+											props.Events.OnPlusClicked:Fire(props.Instance)
 											closeSelf()
 										end,
 									} or nil,
@@ -511,7 +538,7 @@ local function instanceTreeItem(props: props)
 										Label = "New tab for instance",
 										Icon = "ungroup",
 										Callback = function()
-											props.AddTab(props.Instance)
+											props.Events.AddTab:Fire(props.Instance)
 											closeSelf()
 										end,
 									} or nil,
@@ -547,7 +574,11 @@ local function instanceTreeItem(props: props)
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, 0, 0, 0),
 				Visible = Computed(function()
-					if not instanceCategories or #instanceCategories == 0 and #instanceInMap:get().children == 0 then
+					if
+						not instanceCategories
+						or instanceInMap:get() == nil
+						or #instanceCategories == 0 and #instanceInMap:get().children == 0
+					then
 						return false
 					end
 
@@ -594,10 +625,10 @@ local function instanceTreeItem(props: props)
 												Children = children,
 												Lines = cascadingLines,
 											},
-											OnPlusClicked = props.OnPlusClicked,
-											AddTab = props.AddTab,
+											SharedSelectedPropertyState = props.SharedSelectedPropertyState,
 											OpenedContextMenu = props.OpenedContextMenu,
 											InstanceMap = props.InstanceMap,
+											Events = props.Events,
 										})
 								end, function(index, value)
 									Clean(index, value)
@@ -750,7 +781,7 @@ local function instanceTreeItem(props: props)
 																		(depth - 1) * TREE_TAB_SIZE,
 																		0,
 																		math.huge
-																	) + 8,
+																	) + 10,
 																	0,
 																	0
 																),
@@ -774,6 +805,7 @@ local function instanceTreeItem(props: props)
 												[Children] = {
 													New("UIListLayout")({
 														FillDirection = Enum.FillDirection.Vertical,
+														HorizontalAlignment = Enum.HorizontalAlignment.Right,
 														Padding = UDim.new(0, 2),
 														SortOrder = Enum.SortOrder.LayoutOrder,
 														VerticalAlignment = Enum.VerticalAlignment.Top,
@@ -806,6 +838,8 @@ local function instanceTreeItem(props: props)
 															if tableUpdated then
 																processedProperties:set(usedProcessedProperties)
 															end
+
+															local wasStateChangeCascading = false
 
 															local stateChangedObserver = Observer(
 																usedProcessedProperties[name]
@@ -862,7 +896,38 @@ local function instanceTreeItem(props: props)
 																		)
 
 																		error(`Error setting {name}: {result}`)
+																	elseif not wasStateChangeCascading then
+																		-- see if we are a selected property
+																		local selectedProperties =
+																			props.SharedSelectedPropertyState:get()
+																		local isSelected = selectedProperties[props.Instance]
+																			and selectedProperties[props.Instance][name]
+																				~= nil
+
+																		if isSelected then
+																			-- change all selected properties that arent ourself to the new value
+																			-- we do this inside of the recording so that the recordings that these changes create get cancelled and merged with the main recording
+																			local usedSelectedProperties =
+																				props.SharedSelectedPropertyState:get()
+
+																			local newValue =
+																				usedProcessedProperties[name]:get()
+
+																			for instance, properties in
+																				usedSelectedProperties
+																			do
+																				if instance == props.Instance then
+																					continue
+																				end
+
+																				for _, prop in properties do
+																					prop.set(newValue)
+																				end
+																			end
+																		end
 																	end
+
+																	wasStateChangeCascading = false
 																end
 
 																local currentValue = property.get
@@ -914,16 +979,161 @@ local function instanceTreeItem(props: props)
 																	Instance = props.Instance,
 																	PropertyName = name,
 																	Value = usedProcessedProperties[name],
+																	Events = props.Events,
 																}, useColor, processedProperties)
 															end, Clean)
 
+															local isPressing = Value(false)
+
 															return idx,
 																Computed(function()
-																	return New("Frame")({
-																		Name = name,
-																		BackgroundTransparency = 1,
+																	return button({
+																		Color = "neutral",
+																		Variant = "ghost",
+																		CustomPressBehaviour = true,
+																		DisableHoverLighting = true,
 																		LayoutOrder = idx,
-																		Size = UDim2.new(1, 0, 0, 24),
+																		AutomaticSize = Enum.AutomaticSize.Y,
+																		Margin = 2,
+																		Size = UDim2.new(
+																			1,
+																			-(props.Depth + 1) * TREE_TAB_SIZE,
+																			0,
+																			24
+																		),
+																		Disabled = Computed(function()
+																			if not isCtrlHeld:get() then
+																				return false
+																			end
+
+																			-- make sure that only properties of the same type can be set together
+																			local selectedProperties =
+																				props.SharedSelectedPropertyState:get()
+
+																			for instance, properties in
+																				selectedProperties
+																			do
+																				for propertyName, _ in properties do
+																					if propertyName ~= name then
+																						return true
+																					end
+
+																					if
+																						instance == props.Instance
+																						and propertyName == name
+																					then
+																						return false
+																					end
+
+																					if propertyName == name then
+																						local propertyTypeData =
+																							properties[propertyName].type
+
+																						-- might seem like a weird comparison, but this is because of a few cases:
+																						-- case 1: we want to only allow the same types of instances to be set together (so only string & number)
+																						-- case 2: we do not want conflicting property fields to be set together (so no slider and input field)
+																						-- case 3: we do not want properties that mutate the result differently to be set together
+																						--         (so no particle emitter texture picker that supports flipbooks, and a normal texture picker)
+																						--         (or number sequence editors with varying min/max values)
+																						--
+																						-- this introduces a few issues, the most major of which is the fact that sliders of different instance kinds
+																						-- can now generally not be set together, but this is a tradeoff that we have to make for the sake of simplicity
+																						if
+																							propertyTypeData[1]
+																								~= (property.render or typeof(
+																									props.Instance[name]
+																								))
+																							or propertyTypeData[2]
+																								~= property.set
+																						then
+																							return true
+																						end
+																					end
+																				end
+																			end
+
+																			return false
+																		end),
+																		Pressing = Computed(function()
+																			-- if this property is selected, return true
+																			local selectedProperties =
+																				props.SharedSelectedPropertyState:get()[props.Instance]
+
+																			if
+																				selectedProperties
+																				and selectedProperties[name]
+																			then
+																				return selectedProperties[name] ~= nil
+																			end
+
+																			return isPressing:get()
+																		end),
+																		OnPress = function(pressing)
+																			isPressing:set(pressing)
+
+																			if pressing and isCtrlHeld:get() then
+																				local isSelfSelected = props.SharedSelectedPropertyState:get()[props.Instance]
+																					and props.SharedSelectedPropertyState:get()[props.Instance][name]
+
+																				if not isSelfSelected then
+																					local selectedProperties =
+																						props.SharedSelectedPropertyState:get()
+																					local instanceProperties =
+																						selectedProperties[props.Instance]
+
+																					if not instanceProperties then
+																						instanceProperties = {}
+																					end
+
+																					instanceProperties[name] = {
+																						set = function(newValue)
+																							wasStateChangeCascading =
+																								true
+																							usedProcessedProperties[name]:set(
+																								newValue
+																							)
+																						end,
+																						type = {
+																							property.render
+																								or typeof(
+																									props.Instance[name]
+																								),
+																							property.set,
+																						},
+																					}
+																					selectedProperties[props.Instance] =
+																						instanceProperties
+
+																					props.SharedSelectedPropertyState:set(
+																						selectedProperties
+																					)
+																				else
+																					-- remove the property from the selected properties
+																					local selectedProperties =
+																						props.SharedSelectedPropertyState:get()
+																					local instanceProperties =
+																						selectedProperties[props.Instance]
+
+																					if instanceProperties then
+																						instanceProperties[name] = nil
+																						props.SharedSelectedPropertyState:set(
+																							selectedProperties
+																						)
+																					end
+																				end
+																			elseif pressing then -- if not ctrl held
+																				-- if this instance is not selected, deselect all other instances
+																				local selectedProperties =
+																					props.SharedSelectedPropertyState:get()
+
+																				if
+																					not selectedProperties[props.Instance]
+																					or not selectedProperties[props.Instance][property.name]
+																				then
+																					props.SharedSelectedPropertyState:set({})
+																				end
+																			end
+																		end,
 																		Visible = Computed(function()
 																			if
 																				props.SearchMode:get()[1]
@@ -942,27 +1152,19 @@ local function instanceTreeItem(props: props)
 
 																			return renderedProperty:get() ~= nil
 																		end),
-																		[Cleanup] = {
-																			stateChangedObserver,
-																			propertyChanged,
-																		},
-																		[Children] = {
+																		Content = {
+																			New("UIPadding")({
+																				PaddingLeft = UDim.new(0, 4),
+																			}),
 																			listOption({
-																				Size = UDim2.new(
-																					1,
-																					-(props.Depth + 1) * TREE_TAB_SIZE,
-																					1,
-																					0
-																				),
-																				Position = UDim2.new(
-																					0,
-																					(props.Depth + 1) * TREE_TAB_SIZE,
-																					0,
-																					0
-																				),
+																				Size = UDim2.new(0, 0, 1, 0),
 																				OptionName = name,
 																				Content = renderedProperty,
 																			}),
+																		},
+																		[Cleanup] = {
+																			stateChangedObserver,
+																			propertyChanged,
 																		},
 																	})
 																end, Clean)
@@ -980,6 +1182,40 @@ local function instanceTreeItem(props: props)
 			}),
 		},
 	})
+
+	awaitLayer(component, function(layer)
+		local inputFrame = layer.contentFrame
+
+		table.insert(
+			keyConnections,
+			inputFrame.InputBegan:Connect(function(inputObject)
+				if inputObject.UserInputType == Enum.UserInputType.Keyboard then
+					if
+						inputObject.KeyCode == Enum.KeyCode.LeftControl
+						or inputObject.KeyCode == Enum.KeyCode.RightControl
+					then
+						isCtrlHeld:set(true)
+					end
+				end
+			end)
+		)
+
+		table.insert(
+			keyConnections,
+			inputFrame.InputEnded:Connect(function(inputObject)
+				if inputObject.UserInputType == Enum.UserInputType.Keyboard then
+					if
+						inputObject.KeyCode == Enum.KeyCode.LeftControl
+						or inputObject.KeyCode == Enum.KeyCode.RightControl
+					then
+						isCtrlHeld:set(false)
+					end
+				end
+			end)
+		)
+	end)
+
+	return component
 end
 
 return instanceTreeItem

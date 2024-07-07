@@ -1,9 +1,14 @@
+local AssetService = game:GetService("AssetService")
 local RunService = game:GetService("RunService")
 
 local fusion = require("@packages/fusion")
+local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local Hydrate = fusion.Hydrate
 local New = fusion.New
+
+local Computed = fusion.Computed
+local Value = fusion.Value
 
 local fusionUtils = require("@packages/fusionUtils")
 local propertyProvider = fusionUtils.propertyProvider
@@ -27,26 +32,57 @@ local function flipbook(props: props)
 	local resolution = FLIPBOOK_MAPS[props.FlipbookMode].X * FLIPBOOK_MAPS[props.FlipbookMode].Y
 	local cleanup = {}
 
-	local component = New("ImageLabel")({
+	local editableImage = Value(nil)
+	local didFinish = Value(false)
+
+	local component
+
+	task.spawn(function()
+		pcall(function()
+			editableImage:set(AssetService:CreateEditableImageAsync(props.Image))
+		end)
+
+		didFinish:set(true)
+
+		if editableImage:get(false) == nil then
+			imageSize = requestImage(props.Image)
+
+			if imageSize == nil then
+				return
+			end
+
+			component.ImageRectSize = Vector2.new(
+				imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
+				imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
+			)
+		else
+			imageSize = editableImage:get(false).Size
+
+            component.ImageRectSize = Vector2.new(
+                imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
+                imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
+            )
+		end
+	end)
+
+	component = New("ImageLabel")({
 		BackgroundTransparency = 1,
-		Image = props.Image,
+		Image = Computed(function()
+			if didFinish:get() and editableImage:get() == nil then
+				return props.Image
+			end
+
+			return ""
+		end),
 		ImageTransparency = 0,
 		ScaleType = Enum.ScaleType.Fit,
 		[Cleanup] = cleanup,
+		[Children] = {
+			editableImage,
+		},
 	})
 
-	task.spawn(function()
-		imageSize = requestImage(props.Image)
-
-		if imageSize == nil then
-			return
-		end
-
-		component.ImageRectSize = Vector2.new(
-			imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
-			imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
-		)
-	end)
+	task.spawn(function() end)
 
 	local timer = 0
 	table.insert(

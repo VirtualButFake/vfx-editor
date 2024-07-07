@@ -2,14 +2,7 @@ local InsertService = game:GetService("InsertService")
 
 local fusion = require("@packages/fusion")
 
-local Children = fusion.Children
-local Cleanup = fusion.Cleanup
-local New = fusion.New
-local Ref = fusion.Ref
-
 local Computed = fusion.Computed
-local ForPairs = fusion.ForPairs
-local Value = fusion.Value
 
 local fusionUtils = require("@packages/fusionUtils")
 local use = fusionUtils.use

@@ -117,7 +117,7 @@ local function importInstancesModal(props: props)
 		end
 
 		local targetTable = traverseTextureList(textures, props.Path)
-		local targetvisualizationTable = traverseTextureList(visualizationTextures, props.Path)
+		local targetVisualizationTable = traverseTextureList(visualizationTextures, props.Path)
 
 		-- parse json
 		local succ, parsed = pcall(function()
@@ -125,6 +125,7 @@ local function importInstancesModal(props: props)
 		end)
 
 		if succ and typeof(parsed) == "table" then
+			local parsedCloned = deepCopy(parsed)
 			-- this is an array of textures or texture lists.
 			-- we need to insert them into the target table
 			insertIntoTable(targetTable, parsed)
@@ -134,16 +135,17 @@ local function importInstancesModal(props: props)
 				for _, v in ipairs(content) do
 					if v.id then
 						v.isItem = true
+						v.content = {}
 					else
 						tagItems(v.content)
 					end
 				end
 			end
 
-			tagItems(parsed)
+			tagItems(parsedCloned)
 
 			-- now we need to insert the visualization textures into the visualization table
-			insertIntoTable(targetvisualizationTable, parsed)
+			insertIntoTable(targetVisualizationTable, parsed)
 		end
 
 		visualizedTextures:set(traverseTextureList(visualizationTextures, props.Path))

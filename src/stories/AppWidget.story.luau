@@ -1,9 +1,4 @@
-local studioComponents = require("@packages/studioComponents")
-local storyBase = studioComponents.utility.storyBase
-
 local fusion = require("@packages/fusion")
-local Children = fusion.Children
-local New = fusion.New
 local Clean = fusion.cleanup
 
 local Value = fusion.Value
@@ -34,7 +29,8 @@ return {
 
         return function()
             component:Destroy()
-            Clean(instances)
+            Clean(instances:get())
+            theme.destroy()
         end
 	end,
 }

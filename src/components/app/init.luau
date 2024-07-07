@@ -22,6 +22,8 @@ local selectMenu = studioComponents.common.selectMenu
 local fusionUtils = require("@packages/fusionUtils")
 local topLayerProvider = fusionUtils.topLayerProvider
 
+local signal = require("@packages/signal")
+
 local theme = require("@src/theme")
 
 local historyHandler = require("@src/lib/historyHandler")
@@ -72,30 +74,41 @@ local function App(props: props)
 						PaddingRight = UDim.new(0, 4),
 					}),
 					ForPairs(props.Items, function(index, value)
+                        local events = {
+                            OnItemClicked = signal.new(),
+                            OnPlusClicked = signal.new(),
+                            AddTab = signal.new(),
+                        } :: instanceTreeRoot.events
+
+                        -- no need to clean these up; instancetreeroot cleans up all of the signals when destroyed
+                        events.OnPlusClicked:Connect(function(instance)
+                            newInstanceTarget = instance
+                            isPlusModalVisible:set(true)
+                        end)
+
+                        events.AddTab:Connect(function(instance)
+                            local oldItems = table.clone(props.Items:get())
+
+                            if table.find(oldItems, instance) then
+                                return
+                            end
+
+                            table.insert(oldItems, instance)
+                            props.Items:set(oldItems)
+                            selectedInstance:set(instance)
+                        end)
+
 						return index,
 							instanceTreeRoot({
 								RootInstance = value,
 								Query = searchQuery,
                                 SearchMode = searchMode,
 								MaxDepth = 3,
-								OnPlusClicked = function(instance)
-									newInstanceTarget = instance
-									isPlusModalVisible:set(true)
-								end,
 								SharedContextMenuState = sharedContextMenuState,
-								AddTab = function(instance)
-									local oldItems = table.clone(props.Items:get())
-
-									if table.find(oldItems, instance) then
-										return
-									end
-
-									table.insert(oldItems, instance)
-									props.Items:set(oldItems)
-								end,
 								Visible = Computed(function()
 									return selectedInstance:get() == value
 								end),
+                                Events = events,
 							})
 					end, Clean),
 				},
@@ -321,7 +334,7 @@ local function App(props: props)
                             return searchMode:get()[1] == "instance" and "Search instances.." or "Search properties.."
                         end),
 						Icon = "search",
-						Size = UDim2.new(1, -128, 1, 0),
+						Size = UDim2.new(1, -132, 1, 0),
 						Text = searchQuery,
 						OnTextChanged = function(text)
 							searchQuery:set(text)

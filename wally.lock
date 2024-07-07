@@ -8,9 +8,14 @@ version = "0.2.0"
 dependencies = []
 
 [[package]]
+name = "sleitnick/signal"
+version = "2.0.1"
+dependencies = []
+
+[[package]]
 name = "tijne/vfxeditor"
 version = "0.1.0"
-dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.144"], ["studioComponents", "virtualbutfake/studiocomponents@0.0.226"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.148"]]
+dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.144"], ["signal", "sleitnick/signal@2.0.1"], ["studioComponents", "virtualbutfake/studiocomponents@0.0.244"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.149"]]
 
 [[package]]
 name = "virtualbutfake/fusionutils"
@@ -24,8 +29,8 @@ dependencies = []
 
 [[package]]
 name = "virtualbutfake/studiocomponents"
-version = "0.0.226"
-dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.144"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.148"]]
+version = "0.0.244"
+dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.144"], ["tailwind", "virtualbutfake/tailwind@0.0.135"], ["themeFramework", "virtualbutfake/themeframework@0.0.149"]]
 
 [[package]]
 name = "virtualbutfake/tailwind"
@@ -34,5 +39,5 @@ dependencies = []
 
 [[package]]
 name = "virtualbutfake/themeframework"
-version = "0.0.148"
+version = "0.0.149"
 dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusionutils@0.0.144"], ["tailwind", "virtualbutfake/tailwind@0.0.135"]]

@@ -57,7 +57,7 @@ local function sliderPropertyField(props: props)
     return New("Frame")({
 		BackgroundTransparency = 1,
 		LayoutOrder = props.LayoutOrder,
-		Size = UDim2.new(1, 0, 0, 24),
+		Size = UDim2.new(1, 0, 0, 20),
 		[Cleanup] = connections,
 		[Children] = {
 			New("UIListLayout")({
@@ -93,7 +93,7 @@ local function sliderPropertyField(props: props)
 					end
 				end,
 			}),
-			--[[input({
+			input({
 				Variant = "default",
 				Color = "gray",
 				AppearanceOverride = {
@@ -121,7 +121,7 @@ local function sliderPropertyField(props: props)
 					sliderValue:set(value)
 					props.Value:set(value)
 				end,
-			}),]]
+			}),
 		},
 	})
 end

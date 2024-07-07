@@ -28,7 +28,7 @@ type props = {
 	Step: number,
 }
 
-local function sliderPropertyField(props: props)
+local function rangePropertyField(props: props)
 	local function roundToStep(value: number): number
 		local closestStep = math.round((value - props.Min) / props.Step) * props.Step + props.Min
 
@@ -134,4 +134,4 @@ local function sliderPropertyField(props: props)
 	})
 end
 
-return sliderPropertyField
+return rangePropertyField

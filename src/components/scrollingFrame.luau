@@ -93,7 +93,7 @@ local function scrollingFrame(props: props)
 
 				return objects
 			end, Clean),
-			Hydrate(scroller)(props.ScrollingFrameProps or {}),
+			props.ScrollingFrameProps and Hydrate(scroller)(props.ScrollingFrameProps) or scroller,
 		},
 	})
 

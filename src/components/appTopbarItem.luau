@@ -1,5 +1,3 @@
-local StudioService = game:GetService("StudioService")
-
 local fusion = require("@packages/fusion")
 local Spring = fusion.Spring
 local Tween = fusion.Tween
@@ -14,7 +12,7 @@ local Value = fusion.Value
 local studioComponents = require("@packages/studioComponents")
 local baseFrame = studioComponents.base.frame
 local baseText = studioComponents.base.text
-local baseIcon = studioComponents.base.icon
+local baseImageLabel = studioComponents.base.imageLabel
 local button = studioComponents.common.button
 
 local theme = require("@src/theme")
@@ -22,7 +20,7 @@ local theme = require("@src/theme")
 type props = {
 	Item: Instance,
 	Selected: fusion.Computed<boolean>,
-    LayoutOrder: number,
+	LayoutOrder: number,
 	OnClick: () -> nil,
 	OnClose: () -> nil,
 }
@@ -52,7 +50,7 @@ local function AppTopbarItem(props: props)
 		end)
 	)
 
-	local classIcon = StudioService:GetClassIcon(props.Item.ClassName)
+	local classIcon = theme.getClassIcon(props.Item.ClassName)
 
 	return New("TextButton")({
 		Name = "AppTopbarItemWrapper",
@@ -183,25 +181,32 @@ local function AppTopbarItem(props: props)
 								BackgroundTransparency = 1,
 								LayoutOrder = 1,
 							}),
-							baseIcon({
+							baseImageLabel({
 								Name = "Icon",
-								Icon = classIcon.Image,
-								ImageRectOffset = classIcon.ImageRectOffset,
-								ImageRectSize = classIcon.ImageRectSize,
-								Color = useColor("Text", true),
+								Image = Computed(function()
+									return classIcon:get().Image
+								end),
+								ImageRectOffset = Computed(function()
+									return classIcon:get().ImageRectOffset
+								end),
+								ImageRectSize = Computed(function()
+									return classIcon:get().ImageRectSize
+								end),
+                                Size = UDim2.new(0, 16, 0, 16),
+								Appearance = useColor("Text", true),
 								LayoutOrder = 0,
 							}),
 						},
 					}),
 					button({
-                        Name = "Close",
-                        Icon = { Name = "x", Size = 16 },
-                        Color = "gray",
-                        Variant = "ghost",
-                        Margin = 1,
-                        LayoutOrder = 2,
-                        OnClick = props.OnClose,
-                    }),
+						Name = "Close",
+						Icon = { Name = "x", Size = 16 },
+						Color = "gray",
+						Variant = "ghost",
+						Margin = 1,
+						LayoutOrder = 2,
+						OnClick = props.OnClose,
+					}),
 					New("UIListLayout")({
 						FillDirection = Enum.FillDirection.Horizontal,
 						HorizontalAlignment = Enum.HorizontalAlignment.Center,

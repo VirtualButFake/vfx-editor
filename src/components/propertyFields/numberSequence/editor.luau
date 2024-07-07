@@ -38,7 +38,11 @@ local viewport2D = require("@components/viewport2D")
 
 local theme = require("@src/theme")
 
-local function exportGraph(resolution: number, points: { point })
+local function lerp(a: number, b: number, alpha: number): number
+	return a + (b - a) * alpha
+end
+
+local function exportGraph(resolution: number, points: { point }, min: number, max: number)
 	local resolutionIncrement = 1 / resolution
 	local currentKeypoints = {}
 
@@ -86,24 +90,49 @@ local function exportGraph(resolution: number, points: { point })
 				local handle1 = point1.handle2
 				local handle2 = point2.handle1
 
+				-- convert all values to percentages (handles, values)
+				-- i have no idea *why* this is needed, but passing in the values without transforming them to values between (0, 1)
+				-- results in very linear curves, which is not what we want. i think this is an issue with the bezier function so I'd rather implement this hacky solution
+				-- than mess with that
+				local point1Value = (point1.value - min) / (max - min)
+				local point2Value = (point2.value - min) / (max - min)
+				local handle1Y = (handle1.y + point1.value - min) / (max - min)
+				local handle2Y = (handle2.y + point2.value - min) / (max - min)
+
 				local value = easingModes.bezier.Ease(
 					time,
-					Vector2.new(point1.index, point1.value),
-					Vector2.new(handle1.x, handle1.y) + Vector2.new(point1.index, point1.value),
-					Vector2.new(handle2.x, handle2.y) + Vector2.new(point2.index, point2.value),
-					Vector2.new(point2.index, point2.value)
+					Vector2.new(point1.index, point1Value),
+					Vector2.new(handle1.x, handle1Y) + Vector2.new(point1.index, 0),
+					Vector2.new(handle2.x, handle2Y) + Vector2.new(point2.index, 0),
+					Vector2.new(point2.index, point2Value)
 				)
+
+				-- get distance to bounds for both points. use these points instead of the actual envelope
+				-- make sure to use min and max as bounds for the envelope
+				local point1DistanceToBounds = math.clamp(math.min(max - point1.value, point1.value - min), 0, max)
+				local point2DistanceToBounds = math.clamp(math.min(max - point2.value, point2.value - min), 0, max)
 
 				table.insert(currentKeypoints, {
 					index = currentTime,
-					value = value.Y,
-					envelope = easingModes.linear.InOut(point1.envelope, point2.envelope, time),
+					value = lerp(min, max, value.Y),
+					envelope = easingModes.linear.InOut(
+						math.clamp(point1.envelope, 0, point1DistanceToBounds),
+						math.clamp(point2.envelope, 0, point2DistanceToBounds),
+						time
+					),
 				})
 			else
+				local point1DistanceToBounds = math.clamp(math.min(max - point1.value, point1.value - min), 0, max)
+				local point2DistanceToBounds = math.clamp(math.min(max - point2.value, point2.value - min), 0, max)
+
 				table.insert(currentKeypoints, {
 					index = currentTime,
 					value = easingModes[point1.easingMode][point1.direction](point1.value, point2.value, time),
-					envelope = easingModes[point1.easingMode][point1.direction](point1.envelope, point2.envelope, time),
+					envelope = easingModes[point1.easingMode][point1.direction](
+						math.clamp(point1.envelope, 0, point1DistanceToBounds),
+						math.clamp(point2.envelope, 0, point2DistanceToBounds),
+						time
+					),
 				})
 			end
 		end
@@ -135,7 +164,7 @@ local function numberSequenceEq(a: NumberSequence, b: NumberSequence)
 	return true
 end
 
-local function compressPoints(points: { keypoint }): { keypoint }
+local function compressPoints(points: { keypoint }, min: number, max: number): { keypoint }
 	local keypoints = {}
 	local lastPoint: keypoint?
 
@@ -165,8 +194,8 @@ local function compressPoints(points: { keypoint }): { keypoint }
 
 			-- envelope
 			do
-				local distanceToBounds = math.clamp(math.min(1 - point.value, point.value), 0, 1)
-				local lastDistanceToBounds = math.clamp(math.min(1 - lastPoint.value, lastPoint.value), 0, 1)
+				local distanceToBounds = math.clamp(math.min(max - point.value, point.value - min), 0, max)
+				local lastDistanceToBounds = math.clamp(math.min(max - lastPoint.value, lastPoint.value - min), 0, max)
 
 				local envelopeConstrained = math.clamp(point.envelope, 0, distanceToBounds)
 				local lastEnvelopeConstrained = math.clamp(lastPoint.envelope, 0, lastDistanceToBounds)
@@ -177,8 +206,9 @@ local function compressPoints(points: { keypoint }): { keypoint }
 			end
 
 			do
-				local distanceToBounds = math.clamp(math.min(1 - points[i - 2].value, points[i - 2].value), 0, 1)
-				local lastDistanceToBounds = math.clamp(math.min(1 - lastPoint.value, lastPoint.value), 0, 1)
+				local distanceToBounds =
+					math.clamp(math.min(max - points[i - 2].value, points[i - 2].value - min), 0, max)
+				local lastDistanceToBounds = math.clamp(math.min(max - lastPoint.value, lastPoint.value - min), 0, max)
 
 				local envelopeConstrained = math.clamp(points[i - 2].envelope, 0, distanceToBounds)
 				local lastEnvelopeConstrained = math.clamp(lastPoint.envelope, 0, lastDistanceToBounds)
@@ -216,8 +246,8 @@ local function compressPoints(points: { keypoint }): { keypoint }
 	return keypoints
 end
 
-local function numberTableToSequence(points: { keypoint })
-	local keypoints = compressPoints(points)
+local function numberTableToSequence(points: { keypoint }, min: number, max: number)
+	local keypoints = compressPoints(points, min, max)
 
 	if #keypoints > 20 then
 		-- keypoints is now a "curve" of points, divided unequally and based on the detail in a section
@@ -286,9 +316,9 @@ local function numberTableToSequence(points: { keypoint })
 
 				-- envelope
 				do
-					local distanceToBounds = math.clamp(math.min(1 - point.value, point.value), 0, 1)
+					local distanceToBounds = math.clamp(math.min(max - point.value, point.value - min), 0, max)
 					local lastDistanceToBounds =
-						math.clamp(math.min(1 - newKeypoints[i - 1].value, newKeypoints[i - 1].value), 0, 1)
+						math.clamp(math.min(max - newKeypoints[i - 1].value, newKeypoints[i - 1].value - min), 0, max)
 
 					local envelopeConstrained = math.clamp(point.envelope, 0, distanceToBounds)
 					local lastEnvelopeConstrained = math.clamp(newKeypoints[i - 1].envelope, 0, lastDistanceToBounds)
@@ -300,8 +330,8 @@ local function numberTableToSequence(points: { keypoint })
 
 				do
 					local distanceToBounds =
-						math.clamp(math.min(1 - newKeypoints[i + 1].value, newKeypoints[i + 1].value), 0, 1)
-					local lastDistanceToBounds = math.clamp(math.min(1 - point.value, point.value), 0, 1)
+						math.clamp(math.min(max - newKeypoints[i + 1].value, newKeypoints[i + 1].value - min), 0, max)
+					local lastDistanceToBounds = math.clamp(math.min(max - point.value, point.value - min), 0, max)
 
 					local envelopeConstrained = math.clamp(newKeypoints[i + 1].envelope, 0, distanceToBounds)
 					local lastEnvelopeConstrained = math.clamp(point.envelope, 0, lastDistanceToBounds)
@@ -384,13 +414,15 @@ type props = {
 	useColor: theme.useColorFunction,
 	Instance: Instance,
 	PropertyName: string,
-    SupportsEnvelope: boolean,
+	SupportsEnvelope: boolean,
+	Min: number,
+	Max: number,
 }
 
 local GRAPH_UPDATE_HZ = 45
 local GRAPH_RESOLUTION_RENDER = 200
 local GRAPH_RESOLUTION_EXPORT = 500
-local LINE_COLOR = Color3.new(0, 0, 0)
+local LINE_COLOR = Color3.fromRGB(20, 20, 20)
 local ENVELOPE_COLOR = Color3.fromRGB(255, 127, 127)
 local HANDLE_COLOR = Color3.fromRGB(255, 50, 50)
 
@@ -453,13 +485,17 @@ local function numberSequenceEditor(props: props)
 		end
 
 		lastGraphUpdate = tick()
-		graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, points:get(false)))
+		graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, points:get(false), props.Min, props.Max))
 	end
 
 	local isChanging = false
 
 	local function applyChanges()
-		local sequence = numberTableToSequence(exportGraph(GRAPH_RESOLUTION_EXPORT, points:get(false)))
+		local sequence = numberTableToSequence(
+			exportGraph(GRAPH_RESOLUTION_EXPORT, points:get(false), props.Min, props.Max),
+			props.Min,
+			props.Max
+		)
 		isChanging = true
 
 		local dereferencedPoints = {}
@@ -528,11 +564,11 @@ local function numberSequenceEditor(props: props)
 				oldPoints[i] = nil
 			end
 
-			local exportedGraph = exportGraph(GRAPH_RESOLUTION_EXPORT, decodedPoints)
+			local exportedGraph = exportGraph(GRAPH_RESOLUTION_EXPORT, decodedPoints, props.Min, props.Max)
 
 			points:set(oldPoints)
-			graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, decodedPoints))
-			props.Value:set(numberTableToSequence(exportedGraph))
+			graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, decodedPoints, props.Min, props.Max))
+			props.Value:set(numberTableToSequence(exportedGraph, props.Min, props.Max))
 		end
 	end)
 
@@ -590,7 +626,7 @@ local function numberSequenceEditor(props: props)
 
 						local newPoint = Value({
 							index = horizontalProgress,
-							value = verticalProgress,
+							value = lerp(props.Min, props.Max, verticalProgress),
 							envelope = 0,
 							easingMode = "linear",
 							direction = "InOut",
@@ -642,7 +678,7 @@ local function numberSequenceEditor(props: props)
 								Points = graphPoints,
 								EnvelopeColor = ENVELOPE_COLOR,
 								LineColor = LINE_COLOR,
-								PixelScale = 4,
+								PixelScale = 3,
 								Resolution = 200,
 							}),
 							props.SupportsEnvelope and function(convertToVector, bounds, size)
@@ -653,22 +689,31 @@ local function numberSequenceEditor(props: props)
 										local usedDot = usedSelectedDot:get()
 										local pointPos = Vector2.new(usedDot.index, usedDot.value)
 
-										local usedEnvelope = math.clamp(usedDot.envelope, 0, 1)
+										local usedEnvelope = math.clamp(usedDot.envelope, 0, props.Max)
+										local range = props.Max - props.Min
 										local distanceToBounds = math.min(
-											math.clamp(math.min(1 - usedDot.value, usedDot.value), 0, 1),
+											math.clamp(
+												math.min(props.Max - usedDot.value, usedDot.value - props.Min),
+												0,
+												props.Max
+											),
 											usedEnvelope
 										)
 
 										return {
 											handleComponent({
-												HandlePosition = pointPos
-													+ Vector2.new(0, math.max(distanceToBounds, ENVELOPE_SPACING)),
+												HandlePosition = pointPos + Vector2.new(
+													0,
+													math.max(distanceToBounds, ENVELOPE_SPACING * range)
+												),
 												PointPosition = pointPos,
 												Color = HANDLE_COLOR,
 											})(convertToVector, bounds, size),
 											handleComponent({
-												HandlePosition = pointPos
-													- Vector2.new(0, math.max(distanceToBounds, ENVELOPE_SPACING)),
+												HandlePosition = pointPos - Vector2.new(
+													0,
+													math.max(distanceToBounds, ENVELOPE_SPACING * range)
+												),
 												PointPosition = pointPos,
 												Color = HANDLE_COLOR,
 											})(convertToVector, bounds, size),
@@ -735,8 +780,8 @@ local function numberSequenceEditor(props: props)
 								max = 1,
 							},
 							y = {
-								min = 0,
-								max = 1,
+								min = props.Min,
+								max = props.Max,
 							},
 						},
 						Size = UDim2.new(1, 0, 1, 0),
@@ -762,10 +807,18 @@ local function numberSequenceEditor(props: props)
 											if usedSelectedDot then
 												usedSelectedDot = usedSelectedDot:get()
 
-												local envelopeEnd = usedSelectedDot.value
-													+ (math.max(usedSelectedDot.envelope, ENVELOPE_SPACING)) * value
+												local range = props.Max - props.Min
 
-												return UDim2.new(usedSelectedDot.index, 0, 1 - envelopeEnd, 0)
+												local envelopeEnd = usedSelectedDot.value
+													+ (math.max(usedSelectedDot.envelope, ENVELOPE_SPACING * range))
+														* value
+
+												local percentage = math.clamp(
+													(envelopeEnd - props.Min) / (props.Max - props.Min),
+													0,
+													1
+												)
+												return UDim2.new(usedSelectedDot.index, 0, 1 - percentage, 0)
 											end
 
 											return UDim2.new(0, 0, 0, 0)
@@ -773,6 +826,7 @@ local function numberSequenceEditor(props: props)
 										Size = UDim2.new(0, 10, 0, 10),
 										Visible = Computed(function()
 											local usedSelectedDot = selectedDot:get()
+                                            print(usedSelectedDot)
 
 											if usedSelectedDot then
 												return true
@@ -824,17 +878,29 @@ local function numberSequenceEditor(props: props)
 
 														if usedSelectedDot then
 															local dotData = usedSelectedDot:get()
-															local diff = math.clamp((dotData.value - verticalProgress) * -value, 0, 1)
-															local distanceToBounds = math.clamp(
-																math.min(1 - dotData.value, dotData.value),
+															local diff = math.clamp(
+																(
+																	dotData.value
+																	- lerp(props.Min, props.Max, verticalProgress)
+																) * -value,
 																0,
-																1
+																props.Max
+															)
+															local distanceToBounds = math.clamp(
+																math.min(
+																	props.Max - dotData.value,
+																	dotData.value - props.Min
+																),
+																0,
+																props.Max
 															)
 
 															dotData.envelope = math.clamp(diff, 0, distanceToBounds)
 
 															usedSelectedDot:set(dotData)
-															inputEnvelopeText:set(math.clamp(dotData.envelope, 0, 1))
+															inputEnvelopeText:set(
+																math.clamp(dotData.envelope, 0, props.Max)
+															)
 															rerenderGraph()
 														end
 													end,
@@ -862,10 +928,12 @@ local function numberSequenceEditor(props: props)
 												usedSelectedDot = usedSelectedDot:get()
 
 												if usedSelectedDot[HANDLE_INDEX] then
+													local y = usedSelectedDot[HANDLE_INDEX].y + usedSelectedDot.value
+
 													return UDim2.new(
 														usedSelectedDot[HANDLE_INDEX].x + usedSelectedDot.index,
 														0,
-														1 - usedSelectedDot[HANDLE_INDEX].y - usedSelectedDot.value,
+														1 - (y - props.Min) / (props.Max - props.Min),
 														0
 													)
 												end
@@ -959,7 +1027,11 @@ local function numberSequenceEditor(props: props)
 																value - 2,
 																value - 1
 															)
-															dotData[HANDLE_INDEX].y = verticalProgress - dotData.value
+															dotData[HANDLE_INDEX].y = lerp(
+																props.Min,
+																props.Max,
+																verticalProgress
+															) - dotData.value
 
 															usedSelectedDot:set(dotData)
 															rerenderGraph()
@@ -1034,12 +1106,8 @@ local function numberSequenceEditor(props: props)
 												end),
 												BackgroundTransparency = 0.5,
 												Position = UDim2.new(0.5, 0, 0.5, 0),
+												Rotation = 45,
 												Size = UDim2.new(0, 8, 0, 8),
-												[Children] = {
-													New("UICorner")({
-														CornerRadius = UDim.new(1, 0),
-													}),
-												},
 											}),
 										},
 									})
@@ -1129,9 +1197,14 @@ local function numberSequenceEditor(props: props)
 										BackgroundTransparency = 1,
 										Position = Computed(function()
 											local usedValue = value:get()
-											return UDim2.new(usedValue.index, 0, 1 - usedValue.value, 0)
+											return UDim2.new(
+												usedValue.index,
+												0,
+												1 - (usedValue.value - props.Min) / (props.Max - props.Min),
+												0
+											)
 										end),
-										Size = UDim2.new(0, 16, 0, 16),
+										Size = UDim2.new(0, 24, 0, 24),
 										[Event("MouseButton1Click")] = function()
 											selectedDot:set(value)
 										end,
@@ -1160,10 +1233,11 @@ local function numberSequenceEditor(props: props)
 													)
 												),
 												Position = UDim2.new(0.5, 0, 0.5, 0),
+												Rotation = 45,
 												Size = UDim2.new(0, 8, 0, 8),
 												[Children] = {
-													New("UICorner")({
-														CornerRadius = UDim.new(1, 0),
+													New("UIStroke")({
+														Color = Color3.fromRGB(0, 0, 0),
 													}),
 												},
 											}),
@@ -1293,7 +1367,7 @@ local function numberSequenceEditor(props: props)
 
 											local newValue = table.clone(value:get())
 											newValue.index = horizontalProgress
-											newValue.value = verticalProgress
+											newValue.value = lerp(props.Min, props.Max, verticalProgress)
 
 											-- not necessary, but this is so the ui feels more responsive
 											inputTimeText:set(tostring(newValue.index))
@@ -1370,7 +1444,7 @@ local function numberSequenceEditor(props: props)
 											newDot.index = pointIndex == 1 and 0 or 1
 										end
 
-										inputTimeText:set(tostring(newDot.index))
+										inputTimeText:set(tostring(newDot.index), true)
 										dot:set(newDot, true)
 
 										rerenderGraph()
@@ -1418,9 +1492,9 @@ local function numberSequenceEditor(props: props)
 										end
 
 										local newDot = table.clone(dot:get())
-										newDot.value = math.clamp(newValue, 0, 1)
+										newDot.value = math.clamp(newValue, props.Min, props.Max)
 
-										inputValueText:set(tostring(newDot.value))
+										inputValueText:set(tostring(newDot.value), true)
 										dot:set(newDot, true)
 
 										rerenderGraph()
@@ -1468,7 +1542,7 @@ local function numberSequenceEditor(props: props)
 										end
 
 										local newDot = table.clone(dot:get())
-										newDot.envelope = math.clamp(newEnvelope, 0, 1)
+										newDot.envelope = math.clamp(newEnvelope, 0, props.Max)
 
 										inputEnvelopeText:set(tostring(newDot.envelope), true)
 										dot:set(newDot, true)
@@ -1517,9 +1591,9 @@ local function numberSequenceEditor(props: props)
 	local decodedPoints: { point } = savedData and HttpService:JSONDecode(savedData) or nil
 
 	if decodedPoints then
-		local exportedGraph = exportGraph(GRAPH_RESOLUTION_EXPORT, decodedPoints)
+		local exportedGraph = exportGraph(GRAPH_RESOLUTION_EXPORT, decodedPoints, props.Min, props.Max)
 
-		if not numberSequenceEq(props.Value:get(false), numberTableToSequence(exportedGraph)) then
+		if not numberSequenceEq(props.Value:get(false), numberTableToSequence(exportedGraph, props.Min, props.Max)) then
 			-- when a mismatch is detected, open a modal to ask the user if they want to load the saved data
 			local isVisible = Value(true)
 			local hasPressed = false
@@ -1600,12 +1674,22 @@ local function numberSequenceEditor(props: props)
 												envelope = keypoint.Envelope,
 												easingMode = "linear",
 												direction = "InOut",
+												handle1 = {
+													x = -0.1,
+													y = 0,
+												},
+												handle2 = {
+													x = 0.1,
+													y = 0,
+												},
 											})
 										)
 									end
 
 									points:set(positionData)
-									graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, positionData))
+									graphPoints:set(
+										exportGraph(GRAPH_RESOLUTION_RENDER, positionData, props.Min, props.Max)
+									)
 								end,
 							}),
 							button({
@@ -1627,8 +1711,10 @@ local function numberSequenceEditor(props: props)
 
 									isVisible:set(false)
 									points:set(decodedPoints)
-									graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, decodedPoints))
-									props.Value:set(numberTableToSequence(exportedGraph))
+									graphPoints:set(
+										exportGraph(GRAPH_RESOLUTION_RENDER, decodedPoints, props.Min, props.Max)
+									)
+									props.Value:set(numberTableToSequence(exportedGraph, props.Min, props.Max))
 								end,
 							}),
 						},
@@ -1641,7 +1727,7 @@ local function numberSequenceEditor(props: props)
 			end
 
 			points:set(decodedPoints)
-			graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, decodedPoints))
+			graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, decodedPoints, props.Min, props.Max))
 		end
 	else
 		local value = props.Value:get(false)
@@ -1669,7 +1755,7 @@ local function numberSequenceEditor(props: props)
 		end
 
 		points:set(positionData)
-		graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, positionData))
+		graphPoints:set(exportGraph(GRAPH_RESOLUTION_RENDER, positionData, props.Min, props.Max))
 	end
 
 	return component

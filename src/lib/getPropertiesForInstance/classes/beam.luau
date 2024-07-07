@@ -3,11 +3,13 @@ local class = {}
 local checkbox = require("@components/propertyFields/checkbox")
 local input = require("@components/propertyFields/input")
 local slider = require("@components/propertyFields/slider")
-local range = require("@components/propertyFields/range")
+local object = require("@components/propertyFields/object")
 local dropdown = require("@components/propertyFields/dropdown")
 local colorSequence = require("@components/propertyFields/colorSequence")
 local numberSequence = require("@components/propertyFields/numberSequence")
 local texturePicker = require("@components/propertyFields/texturePicker")
+
+local scaleUtils = require("@src/lib/scaleUtils")
 
 function class.is(instance: Instance)
 	return instance:IsA("Beam")
@@ -18,6 +20,30 @@ class.properties = {
 		name = "Name",
 		render = input,
 	},
+    {
+        name = "Scale",
+        render = input,
+        get = function(instance)
+            return instance:GetAttribute("_vfxEditorScale") or 1
+        end,
+        set = function(instance: Beam, value)
+            -- this number should be at least 0.001
+            local number = tonumber(value)
+
+            if not number then
+                return
+            end
+
+            if number < 0.001 then
+                number = 0.001
+            end 
+
+            local oldScale = instance:GetAttribute("_vfxEditorScale") or 1
+            -- scale our instance relative to the old scale
+            scaleUtils.scaleInstance(instance, number / oldScale)
+            instance:SetAttribute("_vfxEditorScale", number)
+        end,
+    },
 	{
 		name = "Appearance",
 		properties = {
@@ -120,6 +146,8 @@ class.properties = {
                         PropertyName = props.PropertyName,
                         LayoutOrder = props.LayoutOrder,
                         Value = props.Value,
+                        Min = 0,
+                        Max = 1
                     }, useColor)
 				end,
 			},
@@ -142,6 +170,32 @@ class.properties = {
 	{
 		name = "Shape",
 		properties = {
+            {
+                name = "Attachment0",
+                render = function(props, useColor)
+                    return object({
+                        Value = props.Value,
+                        LayoutOrder = props.LayoutOrder,
+                        Filter = function(instance)
+                            return instance:IsA("Attachment")
+                        end,
+                        Events = props.Events,
+                    }, useColor)
+                end,
+            },
+            {
+                name = "Attachment1",
+                render = function(props, useColor)
+                    return object({
+                        Value = props.Value,
+                        LayoutOrder = props.LayoutOrder,
+                        Filter = function(instance)
+                            return instance:IsA("Attachment")
+                        end,
+                        Events = props.Events,
+                    }, useColor)
+                end,
+            },
 			{
 				name = "CurveSize0",
 				render = function(props)

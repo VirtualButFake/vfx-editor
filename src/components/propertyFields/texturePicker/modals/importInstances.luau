@@ -162,7 +162,7 @@ local function importInstancesModal(props: props)
 									name = name,
 									content = {},
 									isItem = true,
-									icon = StudioService:GetClassIcon(child.ClassName),
+									icon = theme.getClassIcon(child.ClassName):get(),
 								})
 
 								hasInserted = true

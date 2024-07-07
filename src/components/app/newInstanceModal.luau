@@ -114,14 +114,20 @@ local function newInstanceModal(props: props)
 								Id = value,
 								Slots = {
 									Left = function()
-										local classIcon = StudioService:GetClassIcon(value)
+										local classIcon = theme.getClassIcon(value)
 
 										return New("ImageLabel")({
 											Name = "ClassIcon",
 											BackgroundTransparency = 1,
-											Image = classIcon.Image,
-											ImageRectOffset = classIcon.ImageRectOffset,
-											ImageRectSize = classIcon.ImageRectSize,
+											Image = Computed(function()
+                                                return classIcon:get().Image
+                                            end),
+											ImageRectOffset = Computed(function()
+                                                return classIcon:get().ImageRectOffset
+                                            end),
+											ImageRectSize = Computed(function()
+                                                return classIcon:get().ImageRectSize
+                                            end),
 											Size = UDim2.new(0, 16, 0, 16),
 										})
 									end,
@@ -134,7 +140,8 @@ local function newInstanceModal(props: props)
 								local selectedOptionValue = selectedOptions:get()
 
 								if #selectedOptionValue ~= 0 then
-									local classIcon = StudioService:GetClassIcon(selectedOptionValue[1])
+                                    -- not isolating this in computeds because an update here is not really relevant - it'll update on option change anyways, so this tiny optimization is irrelevant
+									local classIcon = theme.getClassIcon(selectedOptionValue[1]):get()
 
 									return New("ImageLabel")({
 										Name = "ClassIcon",

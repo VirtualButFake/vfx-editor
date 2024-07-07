@@ -42,6 +42,7 @@ export type property = {
 			Instance: Instance,
 			PropertyName: string,
 			Value: fusion.Value<any>,
+            Events: { [string]: BindableEvent },
 		},
 		useColor: theme.useColorFunction,
 		properties: processedProperties

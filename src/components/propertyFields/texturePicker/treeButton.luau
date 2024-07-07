@@ -3,9 +3,7 @@ local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 local New = fusion.New
 
-local Clean = fusion.cleanup
 local Computed = fusion.Computed
-local ForPairs = fusion.ForPairs
 local Observer = fusion.Observer
 local Value = fusion.Value
 
@@ -53,31 +51,8 @@ type props = {
 local function treeButton(props: props)
 	local isDisabled = props.DisabledPath and tableEq(props.Path, props.DisabledPath) or props.IsSelfDisabled
 
-	local subButtons = Value({})--[[ForPairs(props.Content, function(index, value)
-        print("Change")
-		if value.content then
-			local clonedPath = table.clone(props.Path)
-			table.insert(clonedPath, value.name)
-
-			return index,
-				treeButton({
-					Name = value.name,
-					Icon = value.icon,
-					CurrentPath = props.CurrentPath,
-					Content = value.content,
-					OnClick = props.OnClick,
-					Path = clonedPath,
-					Query = props.Query,
-					DisabledPath = props.DisabledPath,
-					DisabledCascades = props.DisabledCascades,
-					IsSelfDisabled = props.DisabledCascades and isDisabled,
-					IsItem = value.isItem,
-				})
-		end
-
-		return index, nil
-	end, Clean)]]
-
+	local subButtons = Value({})
+    
 	local function refreshData(content)
 		local newSubButtons = {}
 

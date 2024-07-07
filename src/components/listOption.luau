@@ -19,8 +19,9 @@ local function listOption(props: props)
 
 	return New("Frame")({
 		Name = "ListOption",
+        AutomaticSize = Enum.AutomaticSize.X,
 		Size = props.Size,
-		Position = props.Position,
+		Position = props.Position, 
 		BackgroundTransparency = 1,
 		[Children] = {
 			New("UIListLayout")({

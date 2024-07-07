@@ -22,6 +22,8 @@ type props = {
 	Value: fusion.Value<NumberSequence>,
 	LayoutOrder: number,
     SupportsEnvelope: boolean,
+    Min: number,
+    Max: number,
 }
 
 local function numberSequencePropertyField(props: props, useColor: theme.useColorFunction)
@@ -64,6 +66,8 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
                                     Instance = props.Instance,
                                     PropertyName = props.PropertyName,
                                     SupportsEnvelope = props.SupportsEnvelope,
+                                    Min = props.Min,
+                                    Max = props.Max,
                                 })
                             end
             
