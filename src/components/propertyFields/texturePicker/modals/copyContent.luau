@@ -3,13 +3,10 @@ local Children = fusion.Children
 local New = fusion.New
 local Cleanup = fusion.Cleanup
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
-local input = studioComponents.common.input
-local button = studioComponents.common.button
-
-local fusionUtils = require("@packages/fusionUtils")
-local use = fusionUtils.use
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
+local input = fusionComponents.common.input
+local button = fusionComponents.common.button
 
 local theme = require("@src/theme")
 
@@ -45,7 +42,7 @@ local function copyContentModal(props: props)
 						Appearance = props.useColor("Title", true),
 						Text = {
 							Label = "Copy to clipboard",
-							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
+							Font = Font.new(theme.global.font.Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
 						AnchorPoint = Vector2.new(0, 0.5),

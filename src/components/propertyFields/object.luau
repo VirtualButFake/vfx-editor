@@ -6,10 +6,10 @@ local Computed = fusion.Computed
 local Observer = fusion.Observer
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local button = studioComponents.common.button
-local imageLabel = studioComponents.base.imageLabel
-local text = studioComponents.base.text
+local fusionComponents = require("@packages/fusionComponents")
+local button = fusionComponents.common.button
+local imageLabel = fusionComponents.base.imageLabel
+local text = fusionComponents.base.text
 
 local tailwind = require("@packages/tailwind")
 
@@ -17,13 +17,15 @@ local fusionUtils = require("@packages/fusionUtils")
 local awaitLayer = fusionUtils.awaitLayer
 local onDestroy = fusionUtils.onDestroy
 
+local signal = require("@packages/signal")
+
 local theme = require("@src/theme")
 
 type props = {
 	Value: fusion.Value<Instance>,
 	LayoutOrder: number,
 	Filter: (instance: Instance) -> boolean,
-	Events: { [string]: BindableEvent },
+	Events: { [string]: signal.Signal<Instance> },
 }
 
 local sharedSelectState = Value(nil)
@@ -38,7 +40,7 @@ local function objectPropertyField(props: props, useColor: theme.useColorFunctio
 	end)
 
 	local isSelectingItem = Value(false)
-    local selectionConnection
+	local selectionConnection
 
 	local instanceName = Value()
 	local lastConnection
@@ -66,13 +68,15 @@ local function objectPropertyField(props: props, useColor: theme.useColorFunctio
 		DisableHoverLighting = true,
 		AppearanceOverride = {
 			Pressing = {
-				Stroke = theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500],
+				Stroke = Computed(function()
+					return theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500]
+				end),
 			},
 		},
 		LayoutOrder = props.LayoutOrder,
 		[Cleanup] = {
 			Observer(props.Value):onChange(updateName),
-			selectionConnection
+			selectionConnection,
 		},
 		OnClick = function()
 			local currentState = isSelectingItem:get()
@@ -89,16 +93,16 @@ local function objectPropertyField(props: props, useColor: theme.useColorFunctio
 				sharedSelectState:set(isSelectingItem)
 				isSelectingItem:set(true)
 
-                selectionConnection = props.Events.OnItemClicked.Event:Connect(function(instance)
-                    if isSelectingItem:get() then
-                        props.Value:set(instance)
-                        sharedSelectState:set(nil)
-                        isSelectingItem:set(false)
-                    end
-                end)
+				selectionConnection = props.Events.OnItemClicked:Connect(function(instance)
+					if isSelectingItem:get() then
+						props.Value:set(instance)
+						sharedSelectState:set(nil)
+						isSelectingItem:set(false)
+					end
+				end)
 			end
 		end,
-		Margin = 3,
+		Padding = 3,
 		Content = {
 			New("UIListLayout")({
 				FillDirection = Enum.FillDirection.Horizontal,
@@ -125,7 +129,7 @@ local function objectPropertyField(props: props, useColor: theme.useColorFunctio
 			text({
 				Name = "Text",
 				AutomaticSize = Enum.AutomaticSize.X,
-                Size = UDim2.new(0, 0, 0, 16),
+				Size = UDim2.new(0, 0, 0, 16),
 				Appearance = useColor("Text", true),
 				Text = Computed(function()
 					return isSelectingItem:get() and "Select instance.." or instanceName:get()
@@ -141,7 +145,7 @@ local function objectPropertyField(props: props, useColor: theme.useColorFunctio
 				if isSelectingItem:get() and not layer.state.mouseDown:get() then
 					isSelectingItem:set(false)
 					sharedSelectState:set(nil)
-                    selectionConnection:Disconnect()
+					selectionConnection:Disconnect()
 				end
 			end),
 		})

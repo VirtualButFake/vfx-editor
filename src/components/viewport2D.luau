@@ -3,7 +3,6 @@ local Children = fusion.Children
 local Hydrate = fusion.Hydrate
 local New = fusion.New
 local Out = fusion.Out
-local Ref = fusion.Ref
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed

@@ -8,8 +8,8 @@ local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local button = studioComponents.common.button
+local fusionComponents = require("@packages/fusionComponents")
+local button = fusionComponents.common.button
 
 local widget = require("@components/widget")
 local editor = require("./editor")
@@ -21,9 +21,9 @@ type props = {
 	PropertyName: string,
 	Value: fusion.Value<NumberSequence>,
 	LayoutOrder: number,
-    SupportsEnvelope: boolean,
-    Min: number,
-    Max: number,
+	SupportsEnvelope: boolean,
+	Min: number,
+	Max: number,
 }
 
 local function numberSequencePropertyField(props: props, useColor: theme.useColorFunction)
@@ -39,47 +39,47 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 			Name = "line-chart",
 			Size = 16,
 		},
-		Margin = 2,
+		Padding = 2,
 		Size = UDim2.new(0, 16, 0, 16),
 		LayoutOrder = props.LayoutOrder,
 		OnClick = function()
-            if createdWidget == nil then 
-                createdWidget = widget({
-                    Name = `Number Sequence Editor ({props.Instance}.{props.PropertyName})`,
-                    Id = HttpService:GenerateGUID(),
-                    InitialDockTo = Enum.InitialDockState.Float,
-                    InitialEnabled = false,
-                    ForceInitialEnabled = true,
-                    FloatingSize = Vector2.new(500, 250),
-                    MinimumSize = Vector2.new(500, 250),
-                    Enabled = isWidgetEnabled,
-                    [Children] = {
-                        Computed(function()
-                            local widgetEnabled = isWidgetEnabled:get()
-            
-                            if widgetEnabled and not wasEnabled then
-                                wasEnabled = true
-            
-                                return editor({
-                                    Value = props.Value,
-                                    useColor = useColor,
-                                    Instance = props.Instance,
-                                    PropertyName = props.PropertyName,
-                                    SupportsEnvelope = props.SupportsEnvelope,
-                                    Min = props.Min,
-                                    Max = props.Max,
-                                })
-                            end
-            
-                            if not widgetEnabled then
-                                wasEnabled = false
-                            end
-            
-                            return nil
-                        end, Clean),
-                    },
-                })
-            end
+			if createdWidget == nil then
+				createdWidget = widget({
+					Name = `Number Sequence Editor ({props.Instance}.{props.PropertyName})`,
+					Id = HttpService:GenerateGUID(),
+					InitialDockTo = Enum.InitialDockState.Float,
+					InitialEnabled = false,
+					ForceInitialEnabled = true,
+					FloatingSize = Vector2.new(500, 250),
+					MinimumSize = Vector2.new(500, 250),
+					Enabled = isWidgetEnabled,
+					[Children] = {
+						Computed(function()
+							local widgetEnabled = isWidgetEnabled:get()
+
+							if widgetEnabled and not wasEnabled then
+								wasEnabled = true
+
+								return editor({
+									Value = props.Value,
+									useColor = useColor,
+									Instance = props.Instance,
+									PropertyName = props.PropertyName,
+									SupportsEnvelope = props.SupportsEnvelope,
+									Min = props.Min,
+									Max = props.Max,
+								})
+							end
+
+							if not widgetEnabled then
+								wasEnabled = false
+							end
+
+							return nil
+						end, Clean),
+					},
+				})
+			end
 
 			isWidgetEnabled:set(true)
 		end,
@@ -88,9 +88,9 @@ local function numberSequencePropertyField(props: props, useColor: theme.useColo
 				-- https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
 
-                if createdWidget then
-                    createdWidget:Destroy()
-                end
+				if createdWidget then
+					createdWidget:Destroy()
+				end
 			end,
 		},
 	})

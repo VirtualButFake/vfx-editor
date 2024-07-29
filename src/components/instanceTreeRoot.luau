@@ -11,7 +11,7 @@ local Value = fusion.Value
 local fusionUtils = require("@packages/fusionUtils")
 local propertyProvider = fusionUtils.propertyProvider
 
-local getPropertiesForInstance = require("@src/lib/getPropertiesForInstance")
+local classDataHandler = require("@src/lib/classDataHandler")
 
 local instanceTreeItem = require("@src/components/instanceTreeItem")
 
@@ -24,8 +24,10 @@ type childMap = {
 type props = {
 	RootInstance: Instance,
 	Query: fusion.Value<string>,
+	ChildrenReplacement: fusion.Value<{ Instance }>,
 	SearchMode: fusion.Value<{ string }>,
 	MaxDepth: number,
+	IsSelfSelected: fusion.Value<boolean>,
 	SharedContextMenuState: fusion.Value<boolean | fusion.Value<boolean>>,
 	Events: instanceTreeItem.events,
 }
@@ -73,29 +75,100 @@ local function instanceTree(props: props)
 		childMap: childMap,
 		cascadingLines: { [number]: { instanceTreeItem.line } }
 	): nil
-		local properties = getPropertiesForInstance(instance)
+		local properties = classDataHandler.getProperties(instance) or {}
 		local children = instance:GetChildren()
 		local newChildren = table.clone(children)
 		local queryFilteredChildren = {}
 
-		for i, child in children do
-			if not table.find(ALLOWED_CLASSNAMES, child.ClassName) then
-				table.remove(newChildren, i)
-			elseif props.SearchMode:get()[1] == "instance" and props.Query:get() ~= "" then
-				-- build queryfilteredchildren list. how this works is as simple:
-				-- iterate through the children of the instance. if the instance name or any of its descendants match the query, add it to the list
-				if child.Name:lower():find(props.Query:get():lower()) then
-					table.insert(queryFilteredChildren, child)
-				else
-					-- we recursively iterate through the child map to find any descendants that match the query
-					local function findInChildMap(map: childMap): nil
-						for childInstance, mapContents in pairs(map) do
-							if childInstance.Name:lower():find(props.Query:get():lower()) then
-								if not table.find(queryFilteredChildren, child) then
-									table.insert(queryFilteredChildren, child)
+		if depth < props.MaxDepth then
+			for i, child in children do
+				if not table.find(ALLOWED_CLASSNAMES, child.ClassName) then
+					table.remove(newChildren, i)
+				elseif props.SearchMode:get()[1] == "instance" and props.Query:get() ~= "" then
+					-- build queryfilteredchildren list. how this works is as simple:
+					-- iterate through the children of the instance. if the instance name or any of its descendants match the query, add it to the list
+					if child.Name:lower():find(props.Query:get():lower()) then
+						table.insert(queryFilteredChildren, child)
+					else
+						-- we recursively iterate through the child map to find any descendants that match the query
+						local function findInChildMap(map: childMap): nil
+							for childInstance, mapContents in pairs(map) do
+								if childInstance.Name:lower():find(props.Query:get():lower()) then
+									if not table.find(queryFilteredChildren, child) then
+										table.insert(queryFilteredChildren, child)
+									end
+
+									return
 								end
 
-								return
+								findInChildMap(mapContents)
+							end
+
+							return nil
+						end
+
+						findInChildMap(childMap[instance][child])
+					end
+				elseif props.SearchMode:get()[1] == "properties" and props.Query:get() ~= "" then
+					-- search our own properties
+					local foundMatch = false
+					local childProperties = classDataHandler.getProperties(child)
+
+					if childProperties then
+						for _, category in childProperties do
+							local foundValidProperty = false
+							local propertyList = category.properties or { category }
+
+							for _, property in propertyList do
+								if property.name:lower():find(props.Query:get():lower()) then
+									if not table.find(queryFilteredChildren, child) then
+										table.insert(queryFilteredChildren, child)
+									end
+
+									foundValidProperty = true
+									foundMatch = true
+									break
+								end
+							end
+
+							if foundValidProperty then
+								break
+							end
+						end
+
+						if foundMatch then
+							continue
+						end
+					end
+
+					local function findInChildMap(map: childMap): nil
+						for childInstance, mapContents in pairs(map) do
+							local childInstanceProperties = classDataHandler.getProperties(childInstance)
+
+							if childInstanceProperties == nil then
+								continue
+							end
+
+							for _, category in childInstanceProperties do
+								local foundValidProperty = false
+								local propertyList = category.properties or { category }
+
+								for _, property in propertyList do
+									if property.name:lower():find(props.Query:get():lower()) then
+										if not table.find(queryFilteredChildren, child) then
+											if not table.find(queryFilteredChildren, child) then
+												table.insert(queryFilteredChildren, child)
+											end
+
+											foundValidProperty = true
+											break
+										end
+									end
+								end
+
+								if foundValidProperty then
+									break
+								end
 							end
 
 							findInChildMap(mapContents)
@@ -105,78 +178,9 @@ local function instanceTree(props: props)
 					end
 
 					findInChildMap(childMap[instance][child])
+				else
+					table.insert(queryFilteredChildren, child)
 				end
-			elseif props.SearchMode:get()[1] == "properties" and props.Query:get() ~= "" then
-				-- search our own properties
-				local foundMatch = false
-				local childProperties = getPropertiesForInstance(child)
-
-				if childProperties then
-					for _, category in childProperties do
-						local foundValidProperty = false
-						local propertyList = category.properties or { category }
-
-						for _, property in propertyList do
-							if property.name:lower():find(props.Query:get():lower()) then
-								if not table.find(queryFilteredChildren, child) then
-									table.insert(queryFilteredChildren, child)
-								end
-
-								foundValidProperty = true
-								foundMatch = true
-								break
-							end
-						end
-
-						if foundValidProperty then
-							break
-						end
-					end
-
-					if foundMatch then
-						continue
-					end
-				end
-
-				local function findInChildMap(map: childMap): nil
-					for childInstance, mapContents in pairs(map) do
-						local childInstanceProperties = getPropertiesForInstance(childInstance)
-
-						if childInstanceProperties == nil then
-							continue
-						end
-
-						for _, category in childInstanceProperties do
-							local foundValidProperty = false
-							local propertyList = category.properties or { category }
-
-							for _, property in propertyList do
-								if property.name:lower():find(props.Query:get():lower()) then
-									if not table.find(queryFilteredChildren, child) then
-										if not table.find(queryFilteredChildren, child) then
-											table.insert(queryFilteredChildren, child)
-										end
-
-										foundValidProperty = true
-										break
-									end
-								end
-							end
-
-							if foundValidProperty then
-								break
-							end
-						end
-
-						findInChildMap(mapContents)
-					end
-
-					return nil
-				end
-
-				findInChildMap(childMap[instance][child])
-			else
-				table.insert(queryFilteredChildren, child)
 			end
 		end
 
@@ -221,15 +225,15 @@ local function instanceTree(props: props)
 
 			local previousLines = table.clone(cascadingLines)
 
-            if #properties > 0 and #queryFilteredChildren > 0 then 
-                previousLines[depth + 1] = { "StartVertical" }
-            end
+			if #properties > 0 and #queryFilteredChildren > 0 then
+				previousLines[depth + 1] = { "StartVertical" }
+			end
 
-			if not isLast then
+			if not isLast and (depth ~= 0 or #queryFilteredChildren > 0) then
 				previousLines[depth] = { "Vertical" }
-            else
-                previousLines[depth] = nil
-                previousLines[depth - 1] = nil
+			else
+				previousLines[depth] = nil
+				previousLines[depth - 1] = nil
 			end
 
 			cascadingLines = previousLines
@@ -245,59 +249,76 @@ local function instanceTree(props: props)
 
 		table.insert(parent, entry)
 
-		for _, child in children do
-			buildInstanceMap(
-				child,
-				depth + 1,
-				entry.children,
-				queryFilteredChildren,
-				childMap[instance],
-				cascadingLines
-			)
-
-			if table.find(queryFilteredChildren, child) then
-				table.insert(
-					instanceMapConnections,
-					child:GetPropertyChangedSignal("Parent"):Connect(function()
-						mapChanged:set(true, true)
-					end)
+		if childMap and childMap[instance] then
+			for _, child in children do
+				buildInstanceMap(
+					child,
+					depth + 1,
+					entry.children,
+					queryFilteredChildren,
+					childMap[instance],
+					cascadingLines
 				)
 
-				table.insert(
-					instanceMapConnections,
-					child.DescendantAdded:Connect(function()
-						mapChanged:set(true, true)
-					end)
-				)
+				if table.find(queryFilteredChildren, child) then
+					table.insert(
+						instanceMapConnections,
+						child:GetPropertyChangedSignal("Parent"):Connect(function()
+							mapChanged:set(true, true)
+						end)
+					)
 
-				table.insert(
-					instanceMapConnections,
-					child.DescendantRemoving:Connect(function()
-						mapChanged:set(true, true)
-					end)
-				)
+					table.insert(
+						instanceMapConnections,
+						child.DescendantAdded:Connect(function()
+							mapChanged:set(true, true)
+						end)
+					)
+
+					table.insert(
+						instanceMapConnections,
+						child.DescendantRemoving:Connect(function()
+							mapChanged:set(true, true)
+						end)
+					)
+				end
 			end
 		end
 
 		return nil
 	end
 
-	local instanceMap: fusion.Computed<{ instanceTreeItem.instanceMapEntry }> = Computed(function()
+	local instanceMap: fusion.Computed<instanceTreeItem.instanceMapEntry> = Computed(function()
 		if mapChanged:get() then
 			mapChanged:set(false)
 		end
 
-		local map = {}
-		local childMap = {}
+		if props.ChildrenReplacement then
+            print("Found replacement", props.ChildrenReplacement)
+			local maps = {}
 
-		Clean(instanceMapConnections)
-		buildChildMap(props.RootInstance, childMap)
-		buildInstanceMap(props.RootInstance, 0, map, {}, childMap, {})
+			for _, child in props.ChildrenReplacement:get() do
+				local map = {}
+				local childMap = {}
 
-		return map[1]
+				buildChildMap(child, childMap)
+				buildInstanceMap(child, 0, map, {}, childMap, {})
+
+				table.insert(maps, map[1])
+			end
+
+			return maps :: instanceTreeItem.instanceMapEntry
+		else
+			local map = {}
+			local childMap = {}
+
+			Clean(instanceMapConnections)
+			buildChildMap(props.RootInstance, childMap)
+			buildInstanceMap(props.RootInstance, 0, map, {}, childMap, {})
+
+			return map[1]
+		end
 	end)
-
-	local sharedPropertyState = Value({})
 
 	local component = New("Frame")({
 		Name = "InstanceTreeRoot",
@@ -305,28 +326,73 @@ local function instanceTree(props: props)
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 0),
 		[Cleanup] = {
-
-			props.RootInstance.DescendantAdded:Connect(function()
+			props.ChildrenReplacement == nil and props.RootInstance.DescendantAdded:Connect(function()
 				mapChanged:set(true, true)
 			end),
-			props.RootInstance.DescendantRemoving:Connect(function()
+			props.ChildrenReplacement == nil and props.RootInstance.DescendantRemoving:Connect(function()
 				mapChanged:set(true, true)
 			end),
 			props.Events,
 		},
 		[Children] = {
-			instanceTreeItem({
-				LayoutOrder = 0,
-				Instance = props.RootInstance,
-				Query = props.Query,
-				SearchMode = props.SearchMode,
-				Depth = 0,
-				Events = props.Events,
-				InstanceMap = instanceMap,
-				MaxDepth = props.MaxDepth,
-				OpenedContextMenu = props.SharedContextMenuState,
-				SharedSelectedPropertyState = sharedPropertyState,
+			New("UIListLayout")({
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				Padding = UDim.new(0, 0),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				VerticalAlignment = Enum.VerticalAlignment.Top,
 			}),
+			Computed(function()
+				if props.ChildrenReplacement == nil then
+					return instanceTreeItem({
+						LayoutOrder = 0,
+						Instance = props.RootInstance,
+						Query = props.Query,
+						Depth = 0,
+						Events = props.Events,
+						InstanceMap = instanceMap,
+						IsRootInstanceSelected = props.IsSelfSelected,
+						MaxDepth = props.MaxDepth,
+						SearchMode = props.SearchMode,
+						SharedState = {
+							OpenedContextMenu = props.SharedContextMenuState,
+							SelectedProperty = Value({}),
+							CopiedValue = Value(),
+						},
+					})
+				end
+
+				local instanceTreeItemList = {}
+
+				local sharedState = {
+					OpenedContextMenu = props.SharedContextMenuState,
+					SelectedProperty = Value({}),
+					CopiedValue = Value(),
+				}
+
+                local usedMaps = instanceMap:get(false)
+
+				for i, instance in props.ChildrenReplacement:get() do
+					table.insert(
+						instanceTreeItemList,
+						instanceTreeItem({
+							LayoutOrder = 0,
+							Instance = instance,
+							SearchMode = props.SearchMode,
+							Depth = 0,
+							Events = props.Events,
+							HideMainContent = #props.ChildrenReplacement:get() == 1,
+							InstanceMap = Value(usedMaps[i]),
+							IsRootInstanceSelected = props.IsSelfSelected,
+							MaxDepth = props.MaxDepth,
+							Query = props.Query,
+							SharedState = sharedState,
+						})
+					)
+				end
+
+				return instanceTreeItemList
+			end, Clean),
 		},
 	})
 

@@ -1,5 +1,3 @@
-local InsertService = game:GetService("InsertService")
-
 local fusion = require("@packages/fusion")
 
 local Computed = fusion.Computed
@@ -9,7 +7,7 @@ local use = fusionUtils.use
 
 local viewport2D = require("@components/viewport2D")
 
-local cube = InsertService:LoadAsset(17679216306):FindFirstChild("Cube")
+local cube = script.assets.Cube
 local node = script.assets.Node
 local cap = script.assets.Cap
 

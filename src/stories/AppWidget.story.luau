@@ -1,5 +1,4 @@
 local fusion = require("@packages/fusion")
-local Clean = fusion.cleanup
 
 local Value = fusion.Value
 
@@ -17,20 +16,22 @@ return {
 		Width = 350,
 	},
 	story = function(prnt)
-        local instances = Value({
-            historyHandler("Create story instance", generateInstance),
-        })
+		local generatedInstance = historyHandler("Create story instance", generateInstance)
+
+		local instances = Value({
+			generatedInstance,
+		})
 
 		local component = app({
-            Items = instances
-        })
+			Items = instances,
+		})
 
-        component.Parent = prnt
+		component.Parent = prnt
 
-        return function()
-            component:Destroy()
-            Clean(instances:get())
-            theme.destroy()
-        end
+		return function()
+			component:Destroy()
+			generatedInstance:Destroy()
+			theme.destroy()
+		end
 	end,
 }

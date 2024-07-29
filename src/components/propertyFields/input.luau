@@ -1,10 +1,12 @@
 local fusion = require("@packages/fusion")
-local Observer = fusion.Observer
-local Value = fusion.Value
 local Cleanup = fusion.Cleanup
 
-local studioComponents = require("@packages/studioComponents")
-local input = studioComponents.common.input
+local Computed = fusion.Computed
+local Observer = fusion.Observer
+local Value = fusion.Value
+
+local fusionComponents = require("@packages/fusionComponents")
+local input = fusionComponents.common.input
 
 local tailwind = require("@packages/tailwind")
 
@@ -28,12 +30,16 @@ local function inputPropertyField(props: props)
 		AppearanceOverride = {
 			_global = {
 				Background = {
-					color = theme.global.isDark:get() and tailwind.neutral[850] or tailwind.white,
+					color = Computed(function()
+						return theme.global.isDark:get() and tailwind.neutral[850] or tailwind.white
+					end),
 					shadow = 1,
 				},
 			},
 			Focus = {
-				Stroke = theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500],
+				Stroke = Computed(function()
+					return theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500]
+				end),
 			},
 		},
 		Text = inputDisplay,

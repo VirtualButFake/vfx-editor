@@ -1,7 +1,43 @@
-print("Running")
-local selection = script
+local Selection = game:GetService("Selection")
 
-local story = selection.stories["App.story"]
-local requiredStory = require(story)
+local fusion = require("@packages/fusion")
+local Children = fusion.Children
+local New = fusion.New
 
-local destroy = requiredStory.story(game.CoreGui.ScreenGui, {controls={Height="550", Width="350"}})
+local Value = fusion.Value
+
+local fusionUtils = require("@packages/fusionUtils")
+local topLayerProvider = fusionUtils.topLayerProvider
+
+local app = require("@components/app")
+
+local toolbar = plugin:CreateToolbar("VFX Editor")
+local button = toolbar:CreateButton("Toggle VFX Editor", "Open/close the editor", "", "VFX Editor")
+button.ClickableWhenViewportHidden = true
+
+local widget
+
+button.Click:Connect(function()
+	if widget == nil then
+		widget = plugin:CreateDockWidgetPluginGui(
+			"VFXEditor",
+			DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, false, 350, 550, 150, 150)
+		)
+
+		widget.Title = "VFX Editor"
+		widget.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+		local layer = topLayerProvider.new(New("Frame")({
+			BackgroundTransparency = 1,
+			Parent = widget,
+			Size = UDim2.new(1, 0, 1, 0),
+			[Children] = {
+				app({ Items = Value(Selection:Get()) }),
+			},
+		}))
+
+		layer.Parent = widget
+    else 
+        widget.Enabled = not widget.Enabled
+	end
+end)

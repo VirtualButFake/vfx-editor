@@ -1,37 +1,72 @@
 local class = {}
 
+local fusionUtils = require("@packages/fusionUtils")
+local onDestroy = fusionUtils.onDestroy
+
 local checkbox = require("@components/propertyFields/checkbox")
 local input = require("@components/propertyFields/input")
 local slider = require("@components/propertyFields/slider")
 local range = require("@components/propertyFields/range")
-local dropdown = require("@components/propertyFields/dropdown")
+local enumDropdown = require("@components/propertyFields/enumDropdown")
 local colorSequence = require("@components/propertyFields/colorSequence")
 local numberSequence = require("@components/propertyFields/numberSequence")
 local texturePicker = require("@components/propertyFields/texturePicker")
 
 local scaleUtils = require("@src/lib/scaleUtils")
+local settingsManager = require("@src/lib/settingsManager")
+
+local MAX_SIZE = settingsManager.getReactiveWithFallback("max_size", 10)
+local MAX_SQUASH = settingsManager.getReactiveWithFallback("max_squash", 3)
 
 function class.is(instance: Instance)
 	return instance:IsA("ParticleEmitter")
 end
 
+function class.emit(instance: ParticleEmitter)
+	local emitStart = tick()
+	local emitAmount = instance:GetAttribute("_vfxEditorEmitAmount") or 20
+	local emitDelay = instance:GetAttribute("_vfxEditorEmitDelay") or 0
+	instance:SetAttribute("_vfxEditorStartEmit", emitStart)
+
+	task.delay(emitDelay, function()
+		if instance:GetAttribute("_vfxEditorStartEmit") ~= emitStart then
+			return
+		end
+
+		instance:Emit(emitAmount)
+		instance:SetAttribute("_vfxEditorStartEmit", nil)
+	end)
+end
+
 class.properties = {
 	{
 		name = "Name",
+		groupIdentifier = "stringInput",
 		render = input,
 	},
 	{
 		name = "Scale",
-		render = input,
+		groupIdentifier = "scaleInput",
+		render = function(props)
+			local inputField = input(props)
+
+			onDestroy(inputField, {
+				props.Instance:GetAttributeChangedSignal("_vfxEditorScale"):Connect(function()
+					props.Value:set(props.Instance:GetAttribute("_vfxEditorScale") or 1)
+				end),
+			})
+
+			return inputField
+		end,
 		get = function(instance)
 			return instance:GetAttribute("_vfxEditorScale") or 1
 		end,
-		set = function(instance: Beam, value)
+		set = function(instance: ParticleEmitter, value)
 			-- this number should be at least 0.001
 			local number = tonumber(value)
 
 			if not number then
-				return
+				return false
 			end
 
 			if number < 0.001 then
@@ -42,13 +77,54 @@ class.properties = {
 			-- scale our instance relative to the old scale
 			scaleUtils.scaleInstance(instance, number / oldScale)
 			instance:SetAttribute("_vfxEditorScale", number)
+			return
 		end,
+	},
+	{
+		name = "Emit",
+		properties = {
+			{
+				name = "Amount",
+				groupIdentifier = "numberInput",
+				linkedAttribute = "_vfxEditorEmitAmount",
+				render = input,
+				set = function(instance, value)
+					if not tonumber(value) then
+						return false
+					end
+
+					instance:SetAttribute("_vfxEditorEmitAmount", value)
+					return
+				end,
+				get = function(instance)
+					return instance:GetAttribute("_vfxEditorEmitAmount") or 20
+				end,
+			},
+			{
+				name = "Delay",
+				groupIdentifier = "numberInput",
+				linkedAttribute = "_vfxEditorEmitDelay",
+				render = input,
+				set = function(instance, value)
+					if not tonumber(value) then
+						return false
+					end
+
+					instance:SetAttribute("_vfxEditorEmitDelay", value)
+					return
+				end,
+				get = function(instance)
+					return instance:GetAttribute("_vfxEditorEmitDelay") or 0
+				end,
+			},
+		},
 	},
 	{
 		name = "Appearance",
 		properties = {
 			{
 				name = "Brightness",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -63,10 +139,12 @@ class.properties = {
 			},
 			{
 				name = "Color",
+				groupIdentifier = "colorSequence",
 				render = colorSequence,
 			},
 			{
 				name = "LightEmission",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -81,6 +159,7 @@ class.properties = {
 			},
 			{
 				name = "LightInfluence",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -95,10 +174,12 @@ class.properties = {
 			},
 			{
 				name = "Orientation",
-				render = dropdown,
+				groupIdentifier = "orientationenumDropdown",
+				render = enumDropdown,
 			},
 			{
 				name = "Size",
+				groupIdentifier = "sizeNumberSequence",
 				render = function(props, useColor)
 					return numberSequence({
 						Instance = props.Instance,
@@ -107,12 +188,19 @@ class.properties = {
 						LayoutOrder = props.LayoutOrder,
 						SupportsEnvelope = true,
 						Min = 0,
-						Max = 10,
+						Max = MAX_SIZE:get(),
 					}, useColor)
+				end,
+				clipboardGet = function(props)
+					return props.Instance:GetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1])
+				end,
+				clipboardSet = function(props, value)
+					props.Instance:SetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1], value)
 				end,
 			},
 			{
 				name = "Squash",
+				groupIdentifier = "squashNumberSequence",
 				render = function(props, useColor)
 					return numberSequence({
 						Instance = props.Instance,
@@ -121,18 +209,29 @@ class.properties = {
 						LayoutOrder = props.LayoutOrder,
 						SupportsEnvelope = true,
 						Min = -3,
-						Max = 3,
+						Max = MAX_SQUASH:get(),
 					}, useColor)
+				end,
+				clipboardGet = function(props)
+					return props.Instance:GetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1])
+				end,
+				clipboardSet = function(props, value)
+					props.Instance:SetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1], value)
 				end,
 			},
 			{
 				name = "Texture",
+				groupIdentifier = "texturePicker",
 				render = texturePicker,
 				get = function(instance: ParticleEmitter)
 					return `{instance.Texture},{instance.FlipbookLayout.Name}`
 				end,
 				set = function(instance: ParticleEmitter, value)
 					local split = value:split(",")
+
+					if #split ~= 2 and Enum.ParticleFlipbookLayout[split[2]] then
+						return false
+					end
 
 					instance.Texture = split[1]
 					instance.FlipbookLayout =
@@ -141,10 +240,13 @@ class.properties = {
 					if instance.FlipbookFramerate == NumberRange.new(1) then
 						instance.FlipbookFramerate = NumberRange.new(30)
 					end
+
+					return
 				end,
 			},
 			{
 				name = "Transparency",
+				groupIdentifier = "transparencyNumberSequence",
 				render = function(props, useColor)
 					return numberSequence({
 						Instance = props.Instance,
@@ -156,9 +258,16 @@ class.properties = {
 						Max = 1,
 					}, useColor)
 				end,
+				clipboardGet = function(props)
+					return props.Instance:GetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1])
+				end,
+				clipboardSet = function(props, value)
+					props.Instance:SetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1], value)
+				end,
 			},
 			{
 				name = "ZOffset",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -178,14 +287,17 @@ class.properties = {
 		properties = {
 			{
 				name = "EmissionDirection",
-				render = dropdown,
+				groupIdentifier = "emissionDirectionenumDropdown",
+				render = enumDropdown,
 			},
 			{
 				name = "Enabled",
+				groupIdentifier = "checkbox",
 				render = checkbox,
 			},
 			{
 				name = "Lifetime",
+				groupIdentifier = "range",
 				render = function(props)
 					return range({
 						Value = props.Value,
@@ -200,6 +312,7 @@ class.properties = {
 			},
 			{
 				name = "Rate",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -214,6 +327,7 @@ class.properties = {
 			},
 			{
 				name = "Rotation",
+				groupIdentifier = "range",
 				render = function(props)
 					return range({
 						Value = props.Value,
@@ -228,6 +342,7 @@ class.properties = {
 			},
 			{
 				name = "RotSpeed",
+				groupIdentifier = "range",
 				render = function(props)
 					return range({
 						Value = props.Value,
@@ -242,6 +357,7 @@ class.properties = {
 			},
 			{
 				name = "Speed",
+				groupIdentifier = "range",
 				render = function(props)
 					return range({
 						Value = props.Value,
@@ -256,6 +372,7 @@ class.properties = {
 			},
 			{
 				name = "SpreadAngle",
+				groupIdentifier = "vector2Input",
 				render = input,
 				set = function(instance, value)
 					if typeof(value) == "Vector2" then
@@ -263,16 +380,17 @@ class.properties = {
 							instance.SpreadAngle = value
 						end
 
-						return
+						return false
 					end
 
 					local x, y = value:match("([^,]+),([^,]+)")
 
 					if not x or not y then
-						return
+						return false
 					end
 
 					instance.SpreadAngle = Vector2.new(tonumber(x), tonumber(y))
+					return
 				end,
 			},
 		},
@@ -282,14 +400,17 @@ class.properties = {
 		properties = {
 			{
 				name = "Shape",
-				render = dropdown,
+				groupIdentifier = "shapeenumDropdown",
+				render = enumDropdown,
 			},
 			{
 				name = "ShapeInOut",
-				render = dropdown,
+				groupIdentifier = "shapeInOutenumDropdown",
+				render = enumDropdown,
 			},
 			{
 				name = "ShapePartial",
+				groupIdentifier = "slider",
 				render = function(props, _, currentProperties)
 					if currentProperties:get(false).Shape:get() == Enum.ParticleEmitterShape.Box then
 						return nil
@@ -308,7 +429,8 @@ class.properties = {
 			},
 			{
 				name = "ShapeStyle",
-				render = dropdown,
+				groupIdentifier = "shapeStyleenumDropdown",
+				render = enumDropdown,
 			},
 		},
 	},
@@ -317,6 +439,7 @@ class.properties = {
 		properties = {
 			{
 				name = "Acceleration",
+				groupIdentifier = "vector3Input",
 				render = input,
 				set = function(instance, value)
 					if typeof(value) == "Vector3" then
@@ -328,16 +451,17 @@ class.properties = {
 							instance.Acceleration = value
 						end
 
-						return
+						return false
 					end
 
 					local x, y, z = value:match("([^,]+),([^,]+),([^,]+)")
 
 					if not x or not y or not z then
-						return
+						return false
 					end
 
 					instance.Acceleration = Vector3.new(tonumber(x), tonumber(y), tonumber(z))
+					return
 				end,
 			},
 		},
@@ -347,6 +471,7 @@ class.properties = {
 		properties = {
 			{
 				name = "Drag",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -361,10 +486,12 @@ class.properties = {
 			},
 			{
 				name = "LockedToPart",
+				groupIdentifier = "checkbox",
 				render = checkbox,
 			},
 			{
 				name = "TimeScale",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -379,6 +506,7 @@ class.properties = {
 			},
 			{
 				name = "VelocityInheritance",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -393,6 +521,7 @@ class.properties = {
 			},
 			{
 				name = "WindAffectsDrag",
+				groupIdentifier = "checkbox",
 				render = checkbox,
 			},
 		},

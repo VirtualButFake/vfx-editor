@@ -9,11 +9,11 @@ local Event = fusion.OnEvent
 local Computed = fusion.Computed
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local baseFrame = studioComponents.base.frame
-local baseText = studioComponents.base.text
-local baseImageLabel = studioComponents.base.imageLabel
-local button = studioComponents.common.button
+local fusionComponents = require("@packages/fusionComponents")
+local baseFrame = fusionComponents.base.frame
+local baseText = fusionComponents.base.text
+local baseImageLabel = fusionComponents.base.imageLabel
+local button = fusionComponents.common.button
 
 local theme = require("@src/theme")
 
@@ -99,15 +99,16 @@ local function AppTopbarItem(props: props)
 							end),
 							TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 						),
-						BackgroundTransparency = Tween(
+						BackgroundTransparency = Spring(
 							Computed(function()
 								if props.Selected:get() then
-									return useColor("Background").transparency
+									return 0
 								else
 									return 1
 								end
 							end),
-							TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
+							30,
+							1
 						),
 						Position = UDim2.new(0, 0, 1, 0),
 						Size = UDim2.new(1, 0, 0.1, 0),
@@ -192,7 +193,7 @@ local function AppTopbarItem(props: props)
 								ImageRectSize = Computed(function()
 									return classIcon:get().ImageRectSize
 								end),
-                                Size = UDim2.new(0, 16, 0, 16),
+								Size = UDim2.new(0, 16, 0, 16),
 								Appearance = useColor("Text", true),
 								LayoutOrder = 0,
 							}),
@@ -203,7 +204,7 @@ local function AppTopbarItem(props: props)
 						Icon = { Name = "x", Size = 16 },
 						Color = "gray",
 						Variant = "ghost",
-						Margin = 1,
+						Padding = 1,
 						LayoutOrder = 2,
 						OnClick = props.OnClose,
 					}),

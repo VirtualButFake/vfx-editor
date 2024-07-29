@@ -1,6 +1,5 @@
 --!nonstrict
 -- From https://github.com/bkmazefe/VirtualScroller
-local scrollingFrame = require(script.Parent.scrollingFrame)
 local Fusion = require("@packages/fusion")
 local Children = Fusion.Children
 local New = Fusion.New
@@ -24,7 +23,8 @@ see also:
     - with a few modifications for this plugin, such as using offset width values and a custom scrollingframe wrapper for visual consistency
 ]]
 
-local scrollFrame = require("@components/scrollingFrame")
+local fusionComponents = require("@packages/fusionComponents")
+local scrollFrame = fusionComponents.common.scrollingFrame
 
 export type props = {
 	AnchorPoint: Vector2?,
@@ -109,8 +109,8 @@ return function(props: props)
 							return UDim2.new(0, itemWidth:get(), 0, itemHeight:get())
 						end),
 						[Children] = Computed(function()
-                            return props.RenderItem(i)
-                        end, Clean),
+							return props.RenderItem(i)
+						end, Clean),
 					})
 			end, Clean),
 		},

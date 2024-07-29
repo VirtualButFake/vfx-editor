@@ -9,8 +9,8 @@ local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local button = studioComponents.base.button
+local fusionComponents = require("@packages/fusionComponents")
+local button = fusionComponents.base.button
 
 local widget = require("@components/widget")
 local editor = require("./editor")
@@ -75,7 +75,7 @@ local function colorSequencePropertyField(props: props, useColor: theme.useColor
 			function()
 				-- https://devforum.roblox.com/t/2853087 causes issues while using flipbook here
 				isWidgetEnabled:set(false)
-                
+
 				if createdWidget then
 					createdWidget:Destroy()
 				end

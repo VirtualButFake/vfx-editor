@@ -1,11 +1,13 @@
 local class = {}
 
+local fusionUtils = require("@packages/fusionUtils")
+local onDestroy = fusionUtils.onDestroy
+
 local checkbox = require("@components/propertyFields/checkbox")
 local input = require("@components/propertyFields/input")
 local slider = require("@components/propertyFields/slider")
-local range = require("@components/propertyFields/range")
 local object = require("@components/propertyFields/object")
-local dropdown = require("@components/propertyFields/dropdown")
+local enumDropdown = require("@components/propertyFields/enumDropdown")
 local colorSequence = require("@components/propertyFields/colorSequence")
 local numberSequence = require("@components/propertyFields/numberSequence")
 local texturePicker = require("@components/propertyFields/texturePicker")
@@ -19,20 +21,32 @@ end
 class.properties = {
 	{
 		name = "Name",
+		groupIdentifier = "stringInput",
 		render = input,
 	},
 	{
 		name = "Scale",
-		render = input,
+		groupIdentifier = "scaleInput",
+		render = function(props)
+			local inputField = input(props)
+
+			onDestroy(inputField, {
+				props.Instance:GetAttributeChangedSignal("_vfxEditorScale"):Connect(function()
+					props.Value:set(props.Instance:GetAttribute("_vfxEditorScale") or 1)
+				end),
+			})
+
+			return inputField
+		end,
 		get = function(instance)
 			return instance:GetAttribute("_vfxEditorScale") or 1
 		end,
-		set = function(instance: Beam, value)
+		set = function(instance: ParticleEmitter, value)
 			-- this number should be at least 0.001
 			local number = tonumber(value)
 
 			if not number then
-				return
+				return false
 			end
 
 			if number < 0.001 then
@@ -43,6 +57,7 @@ class.properties = {
 			-- scale our instance relative to the old scale
 			scaleUtils.scaleInstance(instance, number / oldScale)
 			instance:SetAttribute("_vfxEditorScale", number)
+			return
 		end,
 	},
 	{
@@ -50,14 +65,17 @@ class.properties = {
 		properties = {
 			{
 				name = "Color",
+				groupIdentifier = "colorSequence",
 				render = colorSequence,
 			},
 			{
 				name = "FaceCamera",
+				groupIdentifier = "checkbox",
 				render = checkbox,
 			},
 			{
 				name = "LightEmission",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -72,6 +90,7 @@ class.properties = {
 			},
 			{
 				name = "LightInfluence",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -86,6 +105,7 @@ class.properties = {
 			},
 			{
 				name = "Texture",
+				groupIdentifier = "texturePicker",
 				render = texturePicker,
 				get = function(instance: ParticleEmitter)
 					return `{instance.Texture},None`
@@ -93,11 +113,17 @@ class.properties = {
 				set = function(instance: ParticleEmitter, value)
 					local split = value:split(",")
 
+					if #split ~= 2 then
+						return false
+					end
+
 					instance.Texture = split[1]
+					return
 				end,
 			},
 			{
 				name = "TextureLength",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -112,10 +138,12 @@ class.properties = {
 			},
 			{
 				name = "TextureMode",
-				render = dropdown,
+				groupIdentifier = "textureModeenumDropdown",
+				render = enumDropdown,
 			},
 			{
 				name = "Transparency",
+				groupIdentifier = "transparencyNumberSequence",
 				render = function(props, useColor)
 					return numberSequence({
 						Instance = props.Instance,
@@ -127,6 +155,12 @@ class.properties = {
 						Max = 1,
 					}, useColor)
 				end,
+				clipboardGet = function(props)
+					return props.Instance:GetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1])
+				end,
+				clipboardSet = function(props, value)
+					props.Instance:SetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1], value)
+				end,
 			},
 		},
 	},
@@ -135,6 +169,7 @@ class.properties = {
 		properties = {
 			{
 				name = "Attachment0",
+				groupIdentifier = "object",
 				render = function(props, useColor)
 					return object({
 						Value = props.Value,
@@ -148,6 +183,7 @@ class.properties = {
 			},
 			{
 				name = "Attachment1",
+				groupIdentifier = "object",
 				render = function(props, useColor)
 					return object({
 						Value = props.Value,
@@ -166,10 +202,12 @@ class.properties = {
 		properties = {
 			{
 				name = "Enabled",
+				groupIdentifier = "checkbox",
 				render = checkbox,
 			},
 			{
 				name = "Lifetime",
+				groupIdentifier = "slider",
 				render = function(props)
 					return slider({
 						Value = props.Value,
@@ -184,28 +222,33 @@ class.properties = {
 			},
 			{
 				name = "MaxLength",
+				groupIdentifier = "numberInput",
 				render = input,
 				set = function(instance, value)
 					if not tonumber(value) then
-						return
+						return false
 					end
 
 					instance.MaxLength = tonumber(value)
+					return
 				end,
 			},
 			{
 				name = "MinLength",
+				groupIdentifier = "numberInput",
 				render = input,
 				set = function(instance, value)
 					if not tonumber(value) then
-						return
+						return false
 					end
 
 					instance.MinLength = tonumber(value)
+					return
 				end,
 			},
 			{
 				name = "WidthScale",
+				groupIdentifier = "slider",
 				render = function(props, useColor)
 					return numberSequence({
 						Instance = props.Instance,
@@ -216,6 +259,12 @@ class.properties = {
 						Min = 0,
 						Max = 1,
 					}, useColor)
+				end,
+				clipboardGet = function(props)
+					return props.Instance:GetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1])
+				end,
+				clipboardSet = function(props, value)
+					props.Instance:SetAttribute("_vfxEditorGraph" .. props.PropertyName:split(" ")[1], value)
 				end,
 			},
 		},

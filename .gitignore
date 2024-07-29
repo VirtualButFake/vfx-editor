@@ -1,5 +1,6 @@
 # Project place file
-/build.rbxlx
+build.rbxlx
+build.rbxm
 
 # Roblox Studio lock files
 /*.rbxlx.lock
@@ -20,3 +21,4 @@ sourcemap.json
 
 # VSCodeCounter
 .VSCodeCounter
+build.rbxm

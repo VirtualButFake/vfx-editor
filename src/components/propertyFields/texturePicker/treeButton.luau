@@ -7,10 +7,10 @@ local Computed = fusion.Computed
 local Observer = fusion.Observer
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local menuEntry = studioComponents.utility.menuEntry
-local baseText = studioComponents.base.text
-local icon = studioComponents.base.icon
+local fusionComponents = require("@packages/fusionComponents")
+local menuEntry = fusionComponents.utility.menuEntry
+local baseText = fusionComponents.base.text
+local icon = fusionComponents.base.icon
 
 local fusionUtils = require("@packages/fusionUtils")
 local use = fusionUtils.use
@@ -52,7 +52,7 @@ local function treeButton(props: props)
 	local isDisabled = props.DisabledPath and tableEq(props.Path, props.DisabledPath) or props.IsSelfDisabled
 
 	local subButtons = Value({})
-    
+
 	local function refreshData(content)
 		local newSubButtons = {}
 
@@ -171,7 +171,7 @@ local function treeButton(props: props)
 										Color = useSlotColor("Text", true),
 										Icon = props.Name == "Home" and "home" or buttonIcon.Image,
 										ImageRectSize = buttonIcon.ImageRectSize,
-                                        ImageRectOffset = buttonIcon.ImageRectOffset,
+										ImageRectOffset = buttonIcon.ImageRectOffset,
 									})
 								end or nil,
 								Center = function(useSlotColor)

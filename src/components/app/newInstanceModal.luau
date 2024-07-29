@@ -1,5 +1,3 @@
-local StudioService = game:GetService("StudioService")
-
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local New = fusion.New
@@ -9,13 +7,10 @@ local Computed = fusion.Computed
 local ForPairs = fusion.ForPairs
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
-local button = studioComponents.common.button
-local selectMenu = studioComponents.common.selectMenu
-
-local fusionUtils = require("@packages/fusionUtils")
-local use = fusionUtils.use
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
+local button = fusionComponents.common.button
+local selectMenu = fusionComponents.common.selectMenu
 
 local tailwind = require("@packages/tailwind")
 
@@ -58,7 +53,7 @@ local function newInstanceModal(props: props)
 						Appearance = props.useColor("Text", true),
 						Text = {
 							Label = "New Instance",
-							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
+							Font = Font.new(theme.global.font.Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
 						AnchorPoint = Vector2.new(0, 0.5),
@@ -93,12 +88,16 @@ local function newInstanceModal(props: props)
 					AppearanceOverride = {
 						_global = {
 							Background = {
-								color = theme.global.isDark:get() and tailwind.neutral[850] or tailwind.white,
+								color = Computed(function()
+									return theme.global.isDark:get() and tailwind.neutral[850] or tailwind.white
+								end),
 								shadow = 1,
 							},
 						},
 						Focus = {
-							Stroke = theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500],
+							Stroke = Computed(function()
+								return theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500]
+							end),
 						},
 					},
 					Size = UDim2.new(0.75, 0, 0, 20),
@@ -120,14 +119,14 @@ local function newInstanceModal(props: props)
 											Name = "ClassIcon",
 											BackgroundTransparency = 1,
 											Image = Computed(function()
-                                                return classIcon:get().Image
-                                            end),
+												return classIcon:get().Image
+											end),
 											ImageRectOffset = Computed(function()
-                                                return classIcon:get().ImageRectOffset
-                                            end),
+												return classIcon:get().ImageRectOffset
+											end),
 											ImageRectSize = Computed(function()
-                                                return classIcon:get().ImageRectSize
-                                            end),
+												return classIcon:get().ImageRectSize
+											end),
 											Size = UDim2.new(0, 16, 0, 16),
 										})
 									end,
@@ -140,7 +139,7 @@ local function newInstanceModal(props: props)
 								local selectedOptionValue = selectedOptions:get()
 
 								if #selectedOptionValue ~= 0 then
-                                    -- not isolating this in computeds because an update here is not really relevant - it'll update on option change anyways, so this tiny optimization is irrelevant
+									-- not isolating this in computeds because an update here is not really relevant - it'll update on option change anyways, so this tiny optimization is irrelevant
 									local classIcon = theme.getClassIcon(selectedOptionValue[1]):get()
 
 									return New("ImageLabel")({
@@ -189,7 +188,7 @@ local function newInstanceModal(props: props)
 					props.OnCreate(usedInput, usedOptions[1])
 
 					selectedOptions:set({})
-                    inputValue:set("")
+					inputValue:set("")
 
 					debounce = true
 

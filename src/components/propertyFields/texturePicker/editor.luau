@@ -13,24 +13,24 @@ local Computed = fusion.Computed
 local Observer = fusion.Observer
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local button = studioComponents.common.button
-local breadcrumb = studioComponents.common.breadcrumb
-local input = studioComponents.common.input
-local modal = studioComponents.common.modal
-local popover = studioComponents.common.popover
-local contextMenu = studioComponents.common.contextMenu
-local menuEntry = studioComponents.utility.menuEntry
-local text = studioComponents.base.text
-local icon = studioComponents.base.icon
-local frame = studioComponents.base.frame
+local fusionComponents = require("@packages/fusionComponents")
+local button = fusionComponents.common.button
+local breadcrumb = fusionComponents.common.breadcrumb
+local input = fusionComponents.common.input
+local modal = fusionComponents.common.modal
+local popover = fusionComponents.common.popover
+local contextMenu = fusionComponents.common.contextMenu
+local menuEntry = fusionComponents.utility.menuEntry
+local text = fusionComponents.base.text
+local icon = fusionComponents.base.icon
+local frame = fusionComponents.base.frame
+local scrollFrame = fusionComponents.common.scrollingFrame
 
 local tailwind = require("@packages/tailwind")
 
 local fusionUtils = require("@packages/fusionUtils")
 local awaitLayer = fusionUtils.awaitLayer
 
-local scrollFrame = require("@components/scrollingFrame")
 local virtualScroller = require("@components/virtualScroller")
 
 local textureImage = require("./textureImage")
@@ -117,10 +117,7 @@ local function editor(props: props)
 	local searchQuery = Value("")
 	local currentPath = Value(props.Path:get(false) or { "Home" })
 
-	local reactiveTextureSettings = settingsManager.getReactive("textures")
-	local textures = Computed(function()
-		return reactiveTextureSettings and reactiveTextureSettings:get() or {}
-	end)
+	local textures = settingsManager.getReactiveWithFallback("textures", {})
 
 	local currentItems: fusion.Computed<{ texture | textureList }> = Computed(function()
 		local path = currentPath:get() or ""
@@ -140,6 +137,12 @@ local function editor(props: props)
 		local query = searchQuery:get():lower()
 
 		table.sort(items, function(a, b)
+			if not a then
+				return false
+			elseif not b then
+				return true
+			end
+
 			if query ~= "" then
 				local aMatchesQuery = string.lower(a.name):find(query)
 				local bMatchesQuery = string.lower(b.name):find(query)
@@ -290,7 +293,7 @@ local function editor(props: props)
 						Variant = "default",
 						Placeholder = "Search..",
 						Icon = "search",
-						TextAlignment = Enum.TextXAlignment.Left,
+						TextXAlignment = Enum.TextXAlignment.Left,
 						Size = UDim2.new(1, 0, 0, 24),
 						OnTextChanged = function(inputText)
 							searchQuery:set(inputText)
@@ -810,87 +813,80 @@ local function editor(props: props)
 								RenderItem = function(index: number)
 									local item = currentItems:get()[index]
 
-                                    if item == nil then
-                                        return
-                                    end
+									if item == nil then
+										return
+									end
 
 									local isThisContextMenuVisible = Value(false)
 									local options = {
-										item.id
-												and Computed(function()
-													if next(selectedIndices:get()) ~= nil then
-														return nil
-													end
+										{
+											Label = "Edit",
+											Icon = "pencil",
+											Color = "gray",
+											Disabled = Computed(function()
+												return next(selectedIndices:get()) ~= nil
+											end),
+											Callback = function()
+												if isModalVisible:get() then
+													return
+												end
 
-													return {
-														Label = "Edit",
-														Icon = "pencil",
-														Color = "gray",
-														Callback = function()
-															if isModalVisible:get() then
-																return
+												isThisContextMenuVisible:set(false)
+												modalContent:set(modifyTextureModal({
+													OverwriteDefaults = {
+														ID = item.id,
+														Name = item.name,
+														["Flipbook Layout"] = item.flipbookLayout
+																and Enum.ParticleFlipbookLayout["Grid" .. item.flipbookLayout]
+															or Enum.ParticleFlipbookLayout.None,
+													},
+                                                    IsFolder = item.id == nil,
+													VerbUsed = "Edit",
+													useColor = useColor,
+													OnCreate = function(name, id, flipbookLayout)
+														local path = currentPath:get() or ""
+														local usedTextures = textures and textures:get(false)
+
+														if not usedTextures then
+															return
+														end
+
+														local items = traverseTextureList(usedTextures, path)
+
+														-- make sure this is not a duplicate name, suffix with (x). filter on whether it's the current item though
+														local newName = name
+														local count = 1
+
+														while
+															tableFind(items, function(texture)
+																return texture.name == newName and texture.id ~= id
+															end)
+														do
+															count = count + 1
+															newName = name .. " (" .. count .. ")"
+														end
+
+														for idx, texture in items do
+															if texture.name == item.name then
+                                                                item.name = newName
+                                                                item.id = id
+                                                                item.flipbookLayout = flipbookLayout
+
+																items[idx] = item
+																break
 															end
+														end
 
-															isThisContextMenuVisible:set(false)
-															modalContent:set(modifyTextureModal({
-																OverwriteDefaults = {
-																	ID = item.id,
-																	Name = item.name,
-																	["Flipbook Layout"] = item.flipbookLayout
-																			and Enum.ParticleFlipbookLayout["Grid" .. item.flipbookLayout]
-																		or Enum.ParticleFlipbookLayout.None,
-																},
-																VerbUsed = "Edit",
-																useColor = useColor,
-																OnCreate = function(name, id, flipbookLayout)
-																	local path = currentPath:get() or ""
-																	local usedTextures = textures
-																		and textures:get(false)
-
-																	if not usedTextures then
-																		return
-																	end
-
-																	local items =
-																		traverseTextureList(usedTextures, path)
-
-																	-- make sure this is not a duplicate name, suffix with (x). filter on whether it's the current item though
-																	local newName = name
-																	local count = 1
-
-																	while
-																		tableFind(items, function(texture)
-																			return texture.name == newName
-																				and texture.id ~= id
-																		end)
-																	do
-																		count = count + 1
-																		newName = name .. " (" .. count .. ")"
-																	end
-
-																	for idx, texture in items do
-																		if texture.name == item.name then
-																			items[idx] = {
-																				name = name,
-																				id = id,
-																				flipbookLayout = flipbookLayout,
-																			}
-																			break
-																		end
-																	end
-
-																	settingsManager.set("textures", usedTextures)
-																	isModalVisible:set(false)
-																end,
-																OnClose = function()
-																	isModalVisible:set(false)
-																end,
-															}))
-															isModalVisible:set(true)
-														end,
-													}
-												end)
-											or nil,
+														settingsManager.set("textures", usedTextures)
+														isModalVisible:set(false)
+													end,
+													OnClose = function()
+														isModalVisible:set(false)
+													end,
+												}))
+												isModalVisible:set(true)
+											end,
+										} or nil,
 										{
 											Label = "Move",
 											Icon = "folder-tree",
@@ -1059,7 +1055,7 @@ local function editor(props: props)
 											end,
 										},
 									}
-									local function customEnabledLogic(toOpen)
+									local function customVisibleLogic(toOpen)
 										if toOpen then
 											if isContextMenuVisible:get() then
 												isContextMenuVisible:get():set(false)
@@ -1128,7 +1124,9 @@ local function editor(props: props)
 													if item.id then
 														-- texture
 														if props.Value and props.IsSelectingImage then
-                                                            local flipbookLayout = item.flipbookLayout and "Grid" .. item.flipbookLayout or "None"
+															local flipbookLayout = item.flipbookLayout
+																	and "Grid" .. item.flipbookLayout
+																or "None"
 															props.Value:set(`{item.id},{flipbookLayout}`)
 														end
 													else
@@ -1182,7 +1180,7 @@ local function editor(props: props)
 											Variant = "default",
 											Enabled = true,
 											Visible = isThisContextMenuVisible,
-											EnabledLogic = customEnabledLogic,
+											VisibleLogic = customVisibleLogic,
 											Options = {
 												options,
 											},

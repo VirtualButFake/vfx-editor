@@ -1,5 +1,5 @@
-local studioComponents = require("@packages/studioComponents")
-local storyBase = studioComponents.utility.storyBase
+local fusionComponents = require("@packages/fusionComponents")
+local storyBase = fusionComponents.utility.storyBase
 
 local fusion = require("@packages/fusion")
 local Value = fusion.Value

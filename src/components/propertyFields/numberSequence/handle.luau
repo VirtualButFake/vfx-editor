@@ -1,8 +1,4 @@
 local fusion = require("@packages/fusion")
-local Computed = fusion.Computed
-
-local fusionUtils = require("@packages/fusionUtils")
-local use = fusionUtils.use
 
 local viewport2D = require("@components/viewport2D")
 

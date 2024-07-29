@@ -2,12 +2,9 @@ local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local New = fusion.New
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
-local button = studioComponents.common.button
-
-local fusionUtils = require("@packages/fusionUtils")
-local use = fusionUtils.use
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
+local button = fusionComponents.common.button
 
 local theme = require("@src/theme")
 
@@ -43,7 +40,7 @@ local function createFolderModal(props: props)
 				Appearance = props.useColor("Title", true),
 				Text = {
 					Label = "Confirm deletion",
-					Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
+					Font = Font.new(theme.global.font.Family, Enum.FontWeight.SemiBold),
 					TextSize = 18,
 				},
 				AnchorPoint = Vector2.new(0, 0.5),
@@ -85,7 +82,7 @@ local function createFolderModal(props: props)
 						Variant = "ghost",
 						ButtonText = "Cancel",
 						AutomaticSize = Enum.AutomaticSize.XY,
-						Margin = 6,
+						Padding = 6,
 						OnClick = function()
 							if operationDone then
 								return
@@ -100,7 +97,7 @@ local function createFolderModal(props: props)
 						Variant = "solid",
 						ButtonText = "Delete",
 						AutomaticSize = Enum.AutomaticSize.XY,
-						Margin = 6,
+						Padding = 6,
 						OnClick = function()
 							if operationDone then
 								return

@@ -1,5 +1,4 @@
 local Selection = game:GetService("Selection")
-local StudioService = game:GetService("StudioService")
 
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
@@ -9,20 +8,17 @@ local New = fusion.New
 local Computed = fusion.Computed
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
-local button = studioComponents.common.button
-local frame = studioComponents.base.frame
-
-local fusionUtils = require("@packages/fusionUtils")
-local use = fusionUtils.use
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
+local button = fusionComponents.common.button
+local frame = fusionComponents.base.frame
+local scrollFrame = fusionComponents.common.scrollingFrame
 
 local theme = require("@src/theme")
 
 local treeButton = require("../treeButton")
-local scrollFrame = require("@components/scrollingFrame")
 
-local getPropertiesForInstance = require("@src/lib/getPropertiesForInstance")
+local classDataHandler = require("@src/lib/classDataHandler")
 
 type texture = {
 	name: string,
@@ -133,7 +129,7 @@ local function importInstancesModal(props: props)
 			local visualizationResult: { texture | textureList } = {}
 
 			for _, child in ipairs(children) do
-				local categories = getPropertiesForInstance(child)
+				local categories = classDataHandler.getProperties(child)
 				local hasInserted = false
 
 				if categories then
@@ -273,7 +269,7 @@ local function importInstancesModal(props: props)
 						Appearance = props.useColor("Title", true),
 						Text = {
 							Label = "Import from Selection",
-							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
+							Font = Font.new(theme.global.font.Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
 						AnchorPoint = Vector2.new(0, 0.5),
@@ -314,13 +310,16 @@ local function importInstancesModal(props: props)
 				Stroke = props.useColor("Line", true),
 				Size = UDim2.new(0, 200, 0, 200),
 				Content = {
+					New("UIPadding")({
+						PaddingBottom = UDim.new(0, 4),
+						PaddingLeft = UDim.new(0, 4),
+						PaddingRight = UDim.new(0, 4),
+						PaddingTop = UDim.new(0, 4),
+					}),
 					scrollFrame({
 						Content = {
 							New("UIPadding")({
-								PaddingBottom = UDim.new(0, 4),
-								PaddingLeft = UDim.new(0, 4),
 								PaddingRight = UDim.new(0, 4),
-								PaddingTop = UDim.new(0, 4),
 							}),
 							New("UIListLayout")({
 								FillDirection = Enum.FillDirection.Vertical,

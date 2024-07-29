@@ -3,8 +3,8 @@ local New = fusion.New
 
 local theme = require("@src/theme")
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
 
 type props = {
 	OptionName: string,

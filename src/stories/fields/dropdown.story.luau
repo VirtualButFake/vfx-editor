@@ -1,11 +1,11 @@
-local studioComponents = require("@packages/studioComponents")
-local storyBase = studioComponents.utility.storyBase
+local fusionComponents = require("@packages/fusionComponents")
+local storyBase = fusionComponents.utility.storyBase
 
 local fusion = require("@packages/fusion")
 local Value = fusion.Value
 
 local listOption = require("@components/listOption")
-local dropdown = require("@components/propertyFields/dropdown")
+local dropdown = require("@components/propertyFields/enumDropdown")
 
 local instance = Instance.new("Part")
 

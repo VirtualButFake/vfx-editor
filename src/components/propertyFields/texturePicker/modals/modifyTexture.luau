@@ -8,18 +8,15 @@ local ForPairs = fusion.ForPairs
 local Observer = fusion.Observer
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
-local button = studioComponents.common.button
-local tooltip = studioComponents.common.tooltip
-
-local fusionUtils = require("@packages/fusionUtils")
-local use = fusionUtils.use
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
+local button = fusionComponents.common.button
+local tooltip = fusionComponents.common.tooltip
 
 local theme = require("@src/theme")
 
 local inputPropertyField = require("@components/propertyFields/input")
-local dropdownPropertyField = require("@components/propertyFields/dropdown")
+local dropdownPropertyField = require("@components/propertyFields/enumDropdown")
 local modalOptionWrapper = require("@components/modalOptionWrapper")
 local textureImage = require("../textureImage")
 
@@ -29,8 +26,9 @@ type folder = {}
 
 type props = {
 	useColor: theme.useColorFunction,
-	OnCreate: (name: string, id: string, flipbookLayout: string) -> (),
+	OnCreate: (name: string, id: string?, flipbookLayout: string?) -> (),
 	OnClose: () -> (),
+	IsFolder: boolean?,
 	VerbUsed: string,
 	OverwriteDefaults: {
 		Name: string?,
@@ -43,7 +41,7 @@ local inputs = {
 	{
 		Name = "Name",
 		Render = inputPropertyField,
-		Placeholder = "Texture name",
+		Placeholder = "Name",
 		Default = "",
 		Validate = function(value)
 			-- the value must be alphanumeric, spaces, or hyphens and cannot be empty
@@ -56,6 +54,7 @@ local inputs = {
 		Render = inputPropertyField,
 		Placeholder = "Texture ID",
 		Default = "",
+		NeedsTexture = true,
 		Validate = function(value)
 			local usedValue = value:get()
 
@@ -68,6 +67,7 @@ local inputs = {
 	},
 	{
 		Name = "Flipbook Layout",
+		NeedsTexture = true,
 		Render = function(props)
 			return tooltip(
 				dropdownPropertyField({
@@ -77,7 +77,7 @@ local inputs = {
 				}),
 				{
 					Enabled = props.Disabled,
-					LockToMouse = true,
+					FollowMouse = true,
 					Variant = "default",
 					Slots = {
 						Content = function(useColor)
@@ -152,8 +152,8 @@ local function createTextureModal(props: props)
 					text({
 						Appearance = props.useColor("Title", true),
 						Text = {
-							Label = `{props.VerbUsed} Texture`,
-							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.SemiBold),
+							Label = `{props.VerbUsed} {props.IsFolder and "Folder" or "Texture"}`,
+							Font = Font.new(theme.global.font.Family, Enum.FontWeight.SemiBold),
 							TextSize = 18,
 						},
 						AnchorPoint = Vector2.new(0, 0.5),
@@ -173,6 +173,10 @@ local function createTextureModal(props: props)
 				},
 			}),
 			ForPairs(inputs, function(index, value)
+				if value.NeedsTexture and props.IsFolder then
+					return index
+				end
+
 				local default = if props.OverwriteDefaults and props.OverwriteDefaults[value.Name] ~= nil
 					then props.OverwriteDefaults[value.Name]
 					else value.Default
@@ -213,6 +217,10 @@ local function createTextureModal(props: props)
 					cleanup
 			end, Clean),
 			Computed(function()
+				if inputValues["Flipbook Layout"] == nil then
+					return nil
+				end
+
 				local flipbookMode: Enum.ParticleFlipbookLayout = inputValues["Flipbook Layout"]:get()
 				local withoutGrid = flipbookMode.Name:gsub("Grid", "")
 
@@ -243,14 +251,18 @@ local function createTextureModal(props: props)
 						return
 					end
 
-					local flipbookMode: Enum.ParticleFlipbookLayout = inputValues["Flipbook Layout"]:get()
-					local withoutGrid = flipbookMode.Name:gsub("Grid", "")
+					if inputValues["ID"] then
+						local flipbookMode: Enum.ParticleFlipbookLayout = inputValues["Flipbook Layout"]:get()
+						local withoutGrid = flipbookMode.Name:gsub("Grid", "")
 
-					props.OnCreate(
-						inputValues["Name"]:get(),
-						inputValues["ID"]:get(),
-						flipbookMode ~= Enum.ParticleFlipbookLayout.None and withoutGrid or nil
-					)
+						props.OnCreate(
+							inputValues["Name"]:get(),
+							inputValues["ID"]:get(),
+							flipbookMode ~= Enum.ParticleFlipbookLayout.None and withoutGrid or nil
+						)
+					else
+						props.OnCreate(inputValues["Name"]:get())
+					end
 
 					hasCreated = true
 				end,

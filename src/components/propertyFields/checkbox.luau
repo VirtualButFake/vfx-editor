@@ -1,7 +1,7 @@
 local fusion = require("@packages/fusion")
 
-local studioComponents = require("@packages/studioComponents")
-local checkbox = studioComponents.common.checkbox
+local fusionComponents = require("@packages/fusionComponents")
+local checkbox = fusionComponents.common.checkbox
 
 type props = {
 	Value: fusion.Value<boolean>,
@@ -18,12 +18,12 @@ local function checkboxPropertyField(props: props)
 		},
 		State = props.Value,
 		LayoutOrder = props.LayoutOrder,
-        Margin = 4,
-        Icon = {
-            Name = "check",
-            Size = 12,
-        },
-        Size = UDim2.new(0, 20, 0, 20),
+		Padding = 4,
+		Icon = {
+			Name = "check",
+			Size = 12,
+		},
+		Size = UDim2.new(0, 20, 0, 20),
 	})
 end
 

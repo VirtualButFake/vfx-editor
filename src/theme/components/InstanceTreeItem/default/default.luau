@@ -7,7 +7,7 @@ return function(themeName: string)
 			SecondaryText = themeName == "Dark" and tailwind.neutral[500] or tailwind.neutral[500],
 			ToggleButton = themeName == "Dark" and tailwind.neutral[400] or tailwind.neutral[500],
 			Line = themeName == "Dark" and tailwind.neutral[750] or tailwind.neutral[200],
-            Background = themeName == "Dark" and tailwind.neutral[700] or tailwind.neutral[200],
+			Background = themeName == "Dark" and tailwind.neutral[700] or tailwind.neutral[200],
 		},
 	}
 end

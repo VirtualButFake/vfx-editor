@@ -58,10 +58,10 @@ local function flipbook(props: props)
 		else
 			imageSize = editableImage:get(false).Size
 
-            component.ImageRectSize = Vector2.new(
-                imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
-                imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
-            )
+			component.ImageRectSize = Vector2.new(
+				imageSize.X / FLIPBOOK_MAPS[props.FlipbookMode].X,
+				imageSize.Y / FLIPBOOK_MAPS[props.FlipbookMode].Y
+			)
 		end
 	end)
 

@@ -7,9 +7,9 @@ local Computed = fusion.Computed
 local Observer = fusion.Observer
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local range = studioComponents.common.range
-local input = studioComponents.common.input
+local fusionComponents = require("@packages/fusionComponents")
+local range = fusionComponents.common.range
+local input = fusionComponents.common.input
 
 local tailwind = require("@packages/tailwind")
 
@@ -91,7 +91,7 @@ local function rangePropertyField(props: props)
 				end,
 				OnDrag = function(isDragging, values)
 					if not isDragging then
-						props.Value:set(NumberRange.new(values[1]:get(false), values[2]:get(false)))
+						props.Value:set(NumberRange.new(values[1], values[2]))
 					end
 				end,
 			}),
@@ -101,12 +101,16 @@ local function rangePropertyField(props: props)
 				AppearanceOverride = {
 					_global = {
 						Background = {
-							color = theme.global.isDark:get() and tailwind.neutral[850] or tailwind.white,
+							color = Computed(function()
+								return theme.global.isDark:get() and tailwind.neutral[850] or tailwind.white
+							end),
 							shadow = 1,
 						},
 					},
 					Focus = {
-						Stroke = theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500],
+						Stroke = Computed(function()
+							return theme.global.isDark:get() and tailwind.blue[400] or tailwind.blue[500]
+						end),
 					},
 				},
 				Size = UDim2.new(0, 48, 0, 20),

@@ -18,29 +18,29 @@ type props = {
 
 local function texture(props: props)
 	local editableImage = Value(nil)
-    local didFinish = Value(false)
+	local didFinish = Value(false)
 
 	task.spawn(function()
 		pcall(function()
 			editableImage:set(AssetService:CreateEditableImageAsync(props.Image))
 		end)
 
-        didFinish:set(true)
+		didFinish:set(true)
 	end)
 
 	local component = New("ImageLabel")({
 		BackgroundTransparency = 1,
 		Image = Computed(function()
-            if didFinish:get() and editableImage:get() == nil then
-                return props.Image
-            end
+			if didFinish:get() and editableImage:get() == nil then
+				return props.Image
+			end
 
-            return ""
-        end),
+			return ""
+		end),
 		ImageTransparency = 0,
 		ScaleType = Enum.ScaleType.Fit,
 		[Children] = {
-			editableImage
+			editableImage,
 		},
 	})
 

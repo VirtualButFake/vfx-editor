@@ -2,7 +2,6 @@ local StudioService = game:GetService("StudioService")
 local Studio = settings().Studio
 
 local themeFramework = require("@packages/themeFramework")
-local tailwind = require("@packages/tailwind")
 local fusion = require("@packages/fusion")
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
@@ -15,20 +14,19 @@ export type useColorFunction = themeFramework.useColorFunction
 local globals = {
 	font = Font.fromEnum(Enum.Font.SourceSans),
 	isDark = Value(false),
-	background = Value(Color3.fromRGB(255, 255, 255)),
+	background = Value(Color3.fromRGB(250, 250, 250)),
 }
 
-local function reloadTheme(self: themeFramework.themeFramework, themeName)
+local theme = themeFramework.new(script.components, function(self, themeName)
 	local isDark = themeName == "Dark"
-	local background = isDark and tailwind.neutral[900] or tailwind.neutral[100]
+	local background = isDark and Color3.fromRGB(46, 46, 46) or Color3.fromRGB(250, 250, 250) -- roblox default backgrounds
 
 	globals.isDark:set(isDark)
 	globals.background:set(background)
 
 	self:setFallback(background)
-end
+end)
 
-local theme = themeFramework.new(script.components, reloadTheme)
 local currentTheme = Value(Studio.Theme.Name)
 
 local connections = {
@@ -54,7 +52,7 @@ return setmetatable({
 	global = globals,
 	getClassIcon = function(className)
 		return Computed(function()
-			currentTheme:get() -- register dependency so it updates when the theme changes
+			currentTheme:get() -- register dependency so it updates when the theme changes. the overhead isn't significant enough to explore other solutions
 			return StudioService:GetClassIcon(className)
 		end)
 	end,

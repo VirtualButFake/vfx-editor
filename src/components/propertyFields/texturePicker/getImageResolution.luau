@@ -38,14 +38,14 @@ local function requestImage(id)
 		})
 	end)
 
-    if not success then 
-        -- HTTP requests are disabled
-        warn("HTTP requests are disabled! Cannot fetch image dimensions.")
+	if not success then
+		-- HTTP requests are disabled
+		warn("HTTP requests are disabled! Cannot fetch image dimensions.")
 
-        image = {
-            Success = false,
-        }
-    end
+		image = {
+			Success = false,
+		}
+	end
 
 	if image.Success then
 		local dimensions = getPngDimensions(image.Body)

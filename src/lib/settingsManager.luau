@@ -9,7 +9,7 @@ local Value = fusion.Value
 
 local plugin = script:FindFirstAncestorWhichIsA("Plugin") or PluginDebugService:FindFirstChild("plugin") :: Plugin?
 
-local SETTING_PREFIX = "vfxEditor_"
+local SETTING_PREFIX = "vfxEditor_" .. math.random()
 
 settingsManager._localStorage = {}
 
@@ -26,7 +26,7 @@ end
 function settingsManager.getReactive<T>(key: string): fusion.Value<T>?
 	local value = settingsManager.get(key)
 
-	if value == nil then
+	if value == nil and settingsManager._localStorage[key] == nil then
 		return nil
 	end
 
@@ -41,6 +41,17 @@ function settingsManager.set(key: string, value: any)
 	else
 		settingsManager._localStorage[key] = Value(value)
 	end
+end
+
+function settingsManager.getReactiveWithFallback(key: string, default: any)
+	local value = settingsManager.getReactive(key)
+
+	if value == nil then
+		settingsManager.set(key, default)
+		return settingsManager.getReactive(key)
+	end
+
+	return value
 end
 
 return settingsManager

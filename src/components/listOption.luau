@@ -4,8 +4,8 @@ local New = fusion.New
 
 local theme = require("@src/theme")
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
 
 type props = {
 	Size: fusion.CanBeState<UDim2>,
@@ -19,9 +19,9 @@ local function listOption(props: props)
 
 	return New("Frame")({
 		Name = "ListOption",
-        AutomaticSize = Enum.AutomaticSize.X,
+		AutomaticSize = Enum.AutomaticSize.X,
 		Size = props.Size,
-		Position = props.Position, 
+		Position = props.Position,
 		BackgroundTransparency = 1,
 		[Children] = {
 			New("UIListLayout")({

@@ -3,6 +3,7 @@ local Selection = game:GetService("Selection")
 local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local Cleanup = fusion.Cleanup
+local Hydrate = fusion.Hydrate
 local New = fusion.New
 
 local Clean = fusion.cleanup
@@ -11,8 +12,11 @@ local ForPairs = fusion.ForPairs
 local Observer = fusion.Observer
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local contextMenu = studioComponents.common.contextMenu
+local fusionUtils = require("@packages/fusionUtils")
+local propertyProvider = fusionUtils.propertyProvider
+
+local fusionComponents = require("@packages/fusionComponents")
+local contextMenu = fusionComponents.common.contextMenu
 
 local appTopbarItem = require("@components/appTopbarItem")
 
@@ -23,9 +27,9 @@ type props = {
 }
 
 local function AppTopbar(props: props)
-	local visualSelectedInstance = Value(props.SelectedInstance:get())
+	local visualSelectedInstance = Value(props.SelectedInstance:get(false))
 
-	return New("ScrollingFrame")({
+	return Hydrate(New("ScrollingFrame")({
 		Name = "Topbar",
 		AutomaticCanvasSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 1,
@@ -55,8 +59,8 @@ local function AppTopbar(props: props)
 				PaddingTop = UDim.new(0, 2),
 			}),
 			ForPairs(props.Items, function(index, item)
-				if not game:IsAncestorOf(item) then
-					return
+				if typeof(item) ~= "Instance" or not game:IsAncestorOf(item) then
+					return index, nil
 				end
 
 				local isContextMenuVisible = Value(false)
@@ -86,12 +90,19 @@ local function AppTopbar(props: props)
 							end,
 							OnClose = function()
 								local oldItems = props.Items:get()
-								table.remove(oldItems, index)
+								oldItems[index] = nil
 								props.Items:set(oldItems)
 
 								if props.SelectedInstance:get() == item then
-									visualSelectedInstance:set(nil)
-									props.SelectedInstance:set(nil)
+									local _, newInstance = next(oldItems)
+
+									if newInstance then
+										props.SelectedInstance:set(newInstance)
+										visualSelectedInstance:set(newInstance)
+									else
+										visualSelectedInstance:set(nil)
+										props.SelectedInstance:set(nil)
+									end
 								end
 							end,
 						}),
@@ -99,7 +110,7 @@ local function AppTopbar(props: props)
 							Color = "gray",
 							Variant = "default",
 							Visible = isContextMenuVisible,
-							EnabledLogic = function(isEnabled)
+							VisibleLogic = function(isEnabled)
 								local currentState = props.SharedContextMenuState:get()
 
 								if isEnabled then
@@ -133,7 +144,7 @@ local function AppTopbar(props: props)
 										Icon = "x",
 										Callback = function()
 											local oldItems = props.Items:get()
-											table.remove(oldItems, index)
+											oldItems[index] = nil
 											props.Items:set(oldItems)
 
 											closeSelf()
@@ -147,7 +158,11 @@ local function AppTopbar(props: props)
 											local newItems = {}
 
 											for i = 1, index do
-												table.insert(newItems, oldItems[i])
+												if oldItems[i] == nil then
+													continue
+												end
+
+												newItems[i] = oldItems[i]
 											end
 
 											props.Items:set(newItems)
@@ -179,7 +194,7 @@ local function AppTopbar(props: props)
 					item.AncestryChanged:Connect(function()
 						if not game:IsAncestorOf(item) then
 							local oldItems = props.Items:get()
-							table.remove(oldItems, index)
+							oldItems[index] = nil
 							props.Items:set(oldItems)
 
 							if props.SelectedInstance:get() == item then
@@ -190,7 +205,7 @@ local function AppTopbar(props: props)
 					end)
 			end, Clean),
 		},
-	})
+	}))(propertyProvider.getPropsAndSpecialKeys(props, "Frame"))
 end
 
 return AppTopbar

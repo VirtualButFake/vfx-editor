@@ -15,18 +15,17 @@ local Computed = fusion.Computed
 local ForPairs = fusion.ForPairs
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local text = studioComponents.base.text
-local modal = studioComponents.common.modal
-local button = studioComponents.common.button
-local inputCollector = studioComponents.utility.inputCollector
-local contextMenu = studioComponents.common.contextMenu
-local icon = studioComponents.base.icon
-local input = studioComponents.common.input
+local fusionComponents = require("@packages/fusionComponents")
+local text = fusionComponents.base.text
+local modal = fusionComponents.common.modal
+local button = fusionComponents.common.button
+local inputCollector = fusionComponents.utility.inputCollector
+local contextMenu = fusionComponents.common.contextMenu
+local icon = fusionComponents.base.icon
+local input = fusionComponents.common.input
 
 local fusionUtils = require("@packages/fusionUtils")
 local topLayerProvider = fusionUtils.topLayerProvider
-local use = fusionUtils.use
 local peek = fusionUtils.peek
 
 local easingModes = require("./easingModes")
@@ -35,6 +34,8 @@ local graph = require("./graph")
 local handleComponent = require("./handle")
 
 local viewport2D = require("@components/viewport2D")
+
+local settingsManager = require("@src/lib/settingsManager")
 
 local theme = require("@src/theme")
 
@@ -114,7 +115,7 @@ local function exportGraph(resolution: number, points: { point }, min: number, m
 
 				table.insert(currentKeypoints, {
 					index = currentTime,
-					value = lerp(min, max, value.Y),
+					value = math.clamp(lerp(min, max, value.Y), min, max),
 					envelope = easingModes.linear.InOut(
 						math.clamp(point1.envelope, 0, point1DistanceToBounds),
 						math.clamp(point2.envelope, 0, point2DistanceToBounds),
@@ -127,7 +128,11 @@ local function exportGraph(resolution: number, points: { point }, min: number, m
 
 				table.insert(currentKeypoints, {
 					index = currentTime,
-					value = easingModes[point1.easingMode][point1.direction](point1.value, point2.value, time),
+					value = math.clamp(
+						easingModes[point1.easingMode][point1.direction](point1.value, point2.value, time),
+						min,
+						max
+					),
 					envelope = easingModes[point1.easingMode][point1.direction](
 						math.clamp(point1.envelope, 0, point1DistanceToBounds),
 						math.clamp(point2.envelope, 0, point2DistanceToBounds),
@@ -363,7 +368,6 @@ local function numberTableToSequence(points: { keypoint }, min: number, max: num
 			table.sort(finalKeypoints, function(a, b)
 				return a.index < b.index
 			end)
-
 			newKeypoints = finalKeypoints
 		end
 
@@ -375,7 +379,7 @@ local function numberTableToSequence(points: { keypoint }, min: number, max: num
 	for _, keypoint in keypoints do
 		table.insert(
 			numberSequenceKeypoints,
-			NumberSequenceKeypoint.new(keypoint.index, keypoint.value, keypoint.envelope)
+			NumberSequenceKeypoint.new(keypoint.index, keypoint.value, math.clamp(keypoint.envelope, 0, math.huge))
 		)
 	end
 
@@ -419,8 +423,8 @@ type props = {
 	Max: number,
 }
 
-local GRAPH_UPDATE_HZ = 45
-local GRAPH_RESOLUTION_RENDER = 200
+local DEFAULT_GRAPH_STYLE = settingsManager.getReactiveWithFallback("graph_editor_default_style", "linear")
+
 local GRAPH_RESOLUTION_EXPORT = 500
 local LINE_COLOR = Color3.fromRGB(20, 20, 20)
 local ENVELOPE_COLOR = Color3.fromRGB(255, 127, 127)
@@ -429,6 +433,10 @@ local HANDLE_COLOR = Color3.fromRGB(255, 50, 50)
 local ENVELOPE_SPACING = 0.1
 
 local function numberSequenceEditor(props: props)
+	-- envelopes cause a TON of lag, so we need to just reduce quality when they could be in play
+	local GRAPH_RESOLUTION_RENDER = props.SupportsEnvelope and 125 or 200
+	local GRAPH_UPDATE_HZ = props.SupportsEnvelope and 20 or 45
+
 	local useColor = theme:get("NumberSequenceEditor", "gray", "default", "Base")
 
 	local points: fusion.Value<{ point }> = Value({})
@@ -446,7 +454,7 @@ local function numberSequenceEditor(props: props)
 	})
 
 	local lastGraphUpdate = 0
-	local attributeName = "_vfxEditorGraph" .. props.PropertyName
+	local attributeName = "_vfxEditorGraph" .. props.PropertyName:split(" ")[1]
 
 	local selectedDot: fusion.Value<{ point }> = Value(nil)
 	local inputTimeText = Value("")
@@ -530,8 +538,8 @@ local function numberSequenceEditor(props: props)
 				table.insert(
 					decodedPoints,
 					{
-						index = keypoint.Time,
-						value = keypoint.Value,
+						index = math.clamp(keypoint.Time, 0, 1),
+						value = math.clamp(keypoint.Value, props.Min, props.Max),
 						envelope = keypoint.Envelope,
 						easingMode = "linear",
 						direction = "InOut",
@@ -628,7 +636,7 @@ local function numberSequenceEditor(props: props)
 							index = horizontalProgress,
 							value = lerp(props.Min, props.Max, verticalProgress),
 							envelope = 0,
-							easingMode = "linear",
+							easingMode = DEFAULT_GRAPH_STYLE:get(false),
 							direction = "InOut",
 							handle1 = {
 								x = -0.1,
@@ -809,9 +817,20 @@ local function numberSequenceEditor(props: props)
 
 												local range = props.Max - props.Min
 
+												local distanceToBounds = math.min(
+													math.clamp(
+														math.min(
+															props.Max - usedSelectedDot.value,
+															usedSelectedDot.value - props.Min
+														),
+														0,
+														props.Max
+													),
+													usedSelectedDot.envelope
+												)
+
 												local envelopeEnd = usedSelectedDot.value
-													+ (math.max(usedSelectedDot.envelope, ENVELOPE_SPACING * range))
-														* value
+													+ (math.max(distanceToBounds, ENVELOPE_SPACING * range)) * value
 
 												local percentage = math.clamp(
 													(envelopeEnd - props.Min) / (props.Max - props.Min),
@@ -826,7 +845,6 @@ local function numberSequenceEditor(props: props)
 										Size = UDim2.new(0, 10, 0, 10),
 										Visible = Computed(function()
 											local usedSelectedDot = selectedDot:get()
-                                            print(usedSelectedDot)
 
 											if usedSelectedDot then
 												return true
@@ -1251,7 +1269,7 @@ local function numberSequenceEditor(props: props)
 											return isThisContextVisible:get()
 												and isContextVisible:get() == isThisContextVisible
 										end),
-										EnabledLogic = function(wouldBeEnabled)
+										VisibleLogic = function(wouldBeEnabled)
 											if not wouldBeEnabled then
 												isThisContextVisible:set(false)
 												isContextVisible:set(false)
@@ -1587,7 +1605,7 @@ local function numberSequenceEditor(props: props)
 		},
 	}))
 
-	local savedData = props.Instance:GetAttribute("_vfxEditorGraphData")
+	local savedData = props.Instance:GetAttribute(attributeName)
 	local decodedPoints: { point } = savedData and HttpService:JSONDecode(savedData) or nil
 
 	if decodedPoints then
@@ -1598,7 +1616,7 @@ local function numberSequenceEditor(props: props)
 			local isVisible = Value(true)
 			local hasPressed = false
 
-			modal(sequenceEditor:get(), {
+			modal(sequenceEditor:get(false), {
 				Visible = isVisible,
 				Padding = UDim.new(0, 8),
 				Content = {
@@ -1614,7 +1632,7 @@ local function numberSequenceEditor(props: props)
 						Text = {
 							Label = "Overwrite saved data?",
 							TextSize = 18,
-							Font = Font.new(use(theme.global.font).Family, Enum.FontWeight.Bold),
+							Font = Font.new(theme.global.font.Family, Enum.FontWeight.Bold),
 						},
 						AutomaticSize = Enum.AutomaticSize.XY,
 					}),
@@ -1652,7 +1670,7 @@ local function numberSequenceEditor(props: props)
 								Variant = "ghost",
 								ButtonText = "Use current data",
 								AutomaticSize = Enum.AutomaticSize.XY,
-								Margin = 6,
+								Padding = 6,
 								OnClick = function()
 									if hasPressed then
 										return
@@ -1697,7 +1715,7 @@ local function numberSequenceEditor(props: props)
 								Variant = "solid",
 								ButtonText = "Overwrite",
 								AutomaticSize = Enum.AutomaticSize.XY,
-								Margin = 6,
+								Padding = 6,
 								OnClick = function()
 									if hasPressed then
 										return

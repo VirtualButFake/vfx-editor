@@ -8,8 +8,8 @@ local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local Value = fusion.Value
 
-local studioComponents = require("@packages/studioComponents")
-local button = studioComponents.common.button
+local fusionComponents = require("@packages/fusionComponents")
+local button = fusionComponents.common.button
 
 local fusionUtils = require("@packages/fusionUtils")
 local topLayerProvider = fusionUtils.topLayerProvider
@@ -42,7 +42,7 @@ local function numberSequencePropertyField(props: props)
 
 		if textures and textures:get() then
 			local function iterate(textureList: editor.textureList, path: { string }): { string }?
-				for key, texture in pairs(textureList) do
+				for key, texture in textureList do
 					if texture.id == nil then
 						local result = iterate(texture.content, { unpack(path), key })
 
@@ -57,7 +57,7 @@ local function numberSequencePropertyField(props: props)
 				return nil
 			end
 
-            return iterate(textures:get(), {}) or {"Home"}
+			return iterate(textures:get(), {}) or { "Home" }
 		end
 
 		return nil
@@ -75,9 +75,9 @@ local function numberSequencePropertyField(props: props)
 		ButtonText = Computed(function()
 			local path = texturePath:get()
 
-            if path[#path] == "Home" then 
-                path = nil
-            end
+			if path and path[#path] == "Home" then
+				path = nil
+			end
 
 			if not props.Value:get() or props.Value:get().Texture == "" then
 				return "None"
@@ -89,46 +89,46 @@ local function numberSequencePropertyField(props: props)
 
 			return path[#path]
 		end),
-		Margin = 2,
+		Padding = 2,
 		Size = UDim2.new(0, 16, 0, 16),
 		LayoutOrder = props.LayoutOrder,
 		OnClick = function()
-            if createdWidget == nil then 
-                createdWidget = widget({
-                    Name = `Texture Picker ({props.Instance}.{props.PropertyName})`,
-                    Id = HttpService:GenerateGUID(),
-                    InitialDockTo = Enum.InitialDockState.Float,
-                    InitialEnabled = false,
-                    ForceInitialEnabled = true,
-                    FloatingSize = Vector2.new(575, 408),
-                    MinimumSize = Vector2.new(400, 300),
-                    Enabled = isWidgetEnabled,
-                    [Children] = {
-                        Computed(function()
-                            local widgetEnabled = isWidgetEnabled:get()
-            
-                            if widgetEnabled and not wasEnabled then
-                                wasEnabled = true
-            
-                                lastReturn = ({
-                                    topLayerProvider.new(editor({
-                                        Value = props.Value,
-                                        Instance = props.Instance,
-                                        IsSelectingImage = true,
-                                        Path = texturePath,
-                                    })),
-                                })[1]
-                            end
-            
-                            if not widgetEnabled then
-                                wasEnabled = false
-                            end
-            
-                            return { lastReturn }
-                        end, Clean),
-                    },
-                })
-            end
+			if createdWidget == nil then
+				createdWidget = widget({
+					Name = `Texture Picker ({props.Instance}.{props.PropertyName})`,
+					Id = HttpService:GenerateGUID(),
+					InitialDockTo = Enum.InitialDockState.Float,
+					InitialEnabled = false,
+					ForceInitialEnabled = true,
+					FloatingSize = Vector2.new(575, 408),
+					MinimumSize = Vector2.new(400, 300),
+					Enabled = isWidgetEnabled,
+					[Children] = {
+						Computed(function()
+							local widgetEnabled = isWidgetEnabled:get()
+
+							if widgetEnabled and not wasEnabled then
+								wasEnabled = true
+
+								lastReturn = ({
+									topLayerProvider.new(editor({
+										Value = props.Value,
+										Instance = props.Instance,
+										IsSelectingImage = true,
+										Path = texturePath,
+									})),
+								})[1]
+							end
+
+							if not widgetEnabled then
+								wasEnabled = false
+							end
+
+							return { lastReturn }
+						end, Clean),
+					},
+				})
+			end
 
 			isWidgetEnabled:set(true)
 		end,
@@ -136,10 +136,10 @@ local function numberSequencePropertyField(props: props)
 			function()
 				-- https://devforum.roblox.com/t/2853087
 				isWidgetEnabled:set(false)
-				
-                if createdWidget then
-                    createdWidget:Destroy()
-                end
+
+				if createdWidget then
+					createdWidget:Destroy()
+				end
 			end,
 		},
 	})
