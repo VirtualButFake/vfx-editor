@@ -118,7 +118,7 @@ local function rangePropertyField(props: props)
 				OnFocusLost = function(text)
 					local values = text:split(",")
 
-					for _, value in ipairs(values) do
+					for _, value in values do
 						if not tonumber(value) then
 							local currentSliderValue = sliderValue:get()
 							textValue:set(

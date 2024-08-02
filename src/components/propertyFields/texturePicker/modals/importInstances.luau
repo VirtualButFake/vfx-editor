@@ -53,7 +53,7 @@ end
 local function deepCopy<T>(t: T & {}): T
 	local copy = {}
 
-	for k, v in pairs(t) do
+	for k, v in t do
 		if type(v) == "table" then
 			copy[k] = deepCopy(v)
 		else
@@ -95,7 +95,7 @@ local function importInstancesModal(props: props)
         ]]
 
 		local function insertIntoTable(t, content)
-			for _, v in ipairs(content) do
+			for _, v in content do
 				-- if t contains an item whose name is the item that we're trying to insert, we need to add a suffix of (x) to the name
 				local newName = v.name
 				local i = 1
@@ -103,7 +103,7 @@ local function importInstancesModal(props: props)
 				while true do
 					local found = false
 
-					for _, item in ipairs(t) do
+					for _, item in t do
 						if item.name == newName then
 							found = true
 							break
@@ -128,12 +128,12 @@ local function importInstancesModal(props: props)
 			local result: { texture | textureList } = {}
 			local visualizationResult: { texture | textureList } = {}
 
-			for _, child in ipairs(children) do
+			for _, child in children do
 				local categories = classDataHandler.getProperties(child)
 				local hasInserted = false
 
 				if categories then
-					for _, category in ipairs(categories) do
+					for _, category in categories do
 						local properties = category.properties and category.properties or { category }
 
 						for _, property in properties do

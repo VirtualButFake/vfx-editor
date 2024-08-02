@@ -54,7 +54,7 @@ end
 local function deepCopy<T>(t: T & {}): T
 	local copy = {}
 
-	for k, v in pairs(t) do
+	for k, v in t do
 		if type(v) == "table" then
 			copy[k] = deepCopy(v)
 		else
@@ -85,7 +85,7 @@ local function importInstancesModal(props: props)
 		local visualizationTextures = deepCopy(textures)
 
 		local function insertIntoTable(t, content: { textureList | texture })
-			for _, v in ipairs(content) do
+			for _, v in content do
 				-- if t contains an item whose name is the item that we're trying to insert, we need to add a suffix of (x) to the name
 				local newName = v.name
 				local i = 1
@@ -93,7 +93,7 @@ local function importInstancesModal(props: props)
 				while true do
 					local found = false
 
-					for _, item in ipairs(t) do
+					for _, item in t do
 						if item.name == newName then
 							found = true
 							break
@@ -129,7 +129,7 @@ local function importInstancesModal(props: props)
 
 			-- for visualization, we need to tag all texture ITEMS (so the ones that have .id) with .isItem = true. this should be recursive
 			local function tagItems(content)
-				for _, v in ipairs(content) do
+				for _, v in content do
 					if v.id then
 						v.isItem = true
 						v.content = {}

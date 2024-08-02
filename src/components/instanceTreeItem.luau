@@ -512,7 +512,7 @@ local function instanceTreeItem(props: props)
 							{
 								Color = "gray",
 								Variant = "default",
-                                Enabled = not LIGHTWEIGHT_MODE:get(),
+								Enabled = not LIGHTWEIGHT_MODE:get(),
 								Visible = isContextMenuVisible,
 								VisibleLogic = function(isEnabled)
 									local currentState = props.SharedState.OpenedContextMenu:get()
@@ -1356,9 +1356,9 @@ local function instanceTreeItem(props: props)
 																				end
 																			end
 																		end,
-                                                                        StateOutput = {
-                                                                            ResetPosition = resetPosition
-                                                                        },
+																		StateOutput = {
+																			ResetPosition = resetPosition,
+																		},
 																		Options = {
 																			{
 																				{

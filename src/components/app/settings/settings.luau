@@ -145,7 +145,7 @@ end
 local function stringsToOptions(strings: { string })
 	local options = {}
 
-	for _, str in ipairs(strings) do
+	for _, str in strings do
 		table.insert(options, {
 			Id = str:lower(),
 			Label = str,

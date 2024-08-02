@@ -1,9 +1,7 @@
 {
-	"name": "VFXEditor",
-	"tree": {
-		"$path": "src",
-		"packages": {
-			"$path": "packages"
-		}
-	}
-}
+    "name": "VFXEditor",
+    "tree": {
+      "$path": "dist"
+    }
+  }
+  

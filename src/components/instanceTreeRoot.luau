@@ -48,7 +48,7 @@ local function instanceTree(props: props)
 	local function buildChildMap(rootInstance: Instance, parent: childMap): nil
 		local children = rootInstance:GetChildren()
 
-		for _, child in ipairs(children) do
+		for _, child in children do
 			if not table.find(ALLOWED_CLASSNAMES, child.ClassName) then
 				continue
 			end
@@ -92,7 +92,7 @@ local function instanceTree(props: props)
 					else
 						-- we recursively iterate through the child map to find any descendants that match the query
 						local function findInChildMap(map: childMap): nil
-							for childInstance, mapContents in pairs(map) do
+							for childInstance, mapContents in map do
 								if childInstance.Name:lower():find(props.Query:get():lower()) then
 									if not table.find(queryFilteredChildren, child) then
 										table.insert(queryFilteredChildren, child)
@@ -142,7 +142,7 @@ local function instanceTree(props: props)
 					end
 
 					local function findInChildMap(map: childMap): nil
-						for childInstance, mapContents in pairs(map) do
+						for childInstance, mapContents in map do
 							local childInstanceProperties = classDataHandler.getProperties(childInstance)
 
 							if childInstanceProperties == nil then
@@ -294,7 +294,7 @@ local function instanceTree(props: props)
 		end
 
 		if props.ChildrenReplacement then
-            print("Found replacement", props.ChildrenReplacement)
+			print("Found replacement", props.ChildrenReplacement)
 			local maps = {}
 
 			for _, child in props.ChildrenReplacement:get() do
@@ -370,7 +370,7 @@ local function instanceTree(props: props)
 					CopiedValue = Value(),
 				}
 
-                local usedMaps = instanceMap:get(false)
+				local usedMaps = instanceMap:get(false)
 
 				for i, instance in props.ChildrenReplacement:get() do
 					table.insert(

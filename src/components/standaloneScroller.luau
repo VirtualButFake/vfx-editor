@@ -234,7 +234,7 @@ local function standaloneScrollerEntry(props: standaloneScrollerEntryProps)
 				local pooledInstances = POOLED_INSTANCES[scrollingFrame:get(false)]
 
 				-- remove self from pooled instances
-				for i, instance in ipairs(pooledInstances) do
+				for i, instance in pooledInstances do
 					if instance.isRendered == isRendered then
 						pooledInstances[i] = nil
 						break

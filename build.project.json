@@ -1,9 +1,0 @@
-{
-	"name": "VFXEditor",
-	"tree": {
-		"$path": "build",
-		"packages": {
-			"$path": "packages"
-		}
-	}
-}

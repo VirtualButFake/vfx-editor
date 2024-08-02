@@ -840,7 +840,7 @@ local function editor(props: props)
 																and Enum.ParticleFlipbookLayout["Grid" .. item.flipbookLayout]
 															or Enum.ParticleFlipbookLayout.None,
 													},
-                                                    IsFolder = item.id == nil,
+													IsFolder = item.id == nil,
 													VerbUsed = "Edit",
 													useColor = useColor,
 													OnCreate = function(name, id, flipbookLayout)
@@ -868,9 +868,9 @@ local function editor(props: props)
 
 														for idx, texture in items do
 															if texture.name == item.name then
-                                                                item.name = newName
-                                                                item.id = id
-                                                                item.flipbookLayout = flipbookLayout
+																item.name = newName
+																item.id = id
+																item.flipbookLayout = flipbookLayout
 
 																items[idx] = item
 																break
