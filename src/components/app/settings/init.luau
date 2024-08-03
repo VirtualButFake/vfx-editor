@@ -170,8 +170,11 @@ local function settingsMenu(props: props)
 												TextYAlignment = Enum.TextYAlignment.Center,
 											}),
 											ForPairs(category.fields, function(idx, field)
-												local fieldValue =
-													Value(if settingsManager.get(field.pluginSettingKey) ~= nil then settingsManager.get(field.pluginSettingKey) else field.default)
+												local fieldValue = Value(
+													if settingsManager.get(field.pluginSettingKey) ~= nil
+														then settingsManager.get(field.pluginSettingKey)
+														else field.default
+												)
 
 												local isContextMenuVisible = Value(false)
 
