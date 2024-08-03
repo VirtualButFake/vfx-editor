@@ -29,7 +29,7 @@ type props = {
 	LayoutOrder: number,
 }
 
-local function numberSequencePropertyField(props: props)
+local function texturePickerPropertyField(props: props)
 	local isWidgetEnabled = Value(false)
 	local wasEnabled = false
 	local lastReturn = nil
@@ -147,4 +147,4 @@ local function numberSequencePropertyField(props: props)
 	return imageButton
 end
 
-return numberSequencePropertyField
+return texturePickerPropertyField

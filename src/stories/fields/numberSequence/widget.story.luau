@@ -22,6 +22,9 @@ return {
 			useColor = theme:get("InstanceTreeItem", "gray", "default", "Base"),
 			Instance = instance,
 			PropertyName = PROPERTY_NAME,
+            Max = 1,
+            Min = 0,
+            SupportsEnvelope = true
 		})
 
 		component.Parent = parent

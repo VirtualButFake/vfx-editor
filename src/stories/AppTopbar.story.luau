@@ -32,6 +32,7 @@ return {
 				appTopbar({
 					Items = instances,
 					SelectedInstance = Value(instances[1]),
+                    SharedContextMenuState = Value(false),
 				}),
 			},
 		})

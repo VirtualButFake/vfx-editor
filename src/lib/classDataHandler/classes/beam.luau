@@ -72,7 +72,7 @@ function class.emit(instance: Beam)
 		instance:SetAttribute("_vfxEditorEmitOriginal" .. property, originalValue)
 	end
 
-	task.delay(instance:GetAttribute("_vfxEditorEmitDelay") or 0, function()
+	task.delay((instance:GetAttribute("_vfxEditorEmitDelay") or 0) :: number, function()
 		if instance:GetAttribute("_vfxEditorStartEmit") ~= emitStart then
 			return
 		end

@@ -54,7 +54,7 @@ end
 local function deepCopy<T>(t: T & {}): T
 	local copy = {}
 
-	for k, v in t do
+	for k, v in t :: { any } do
 		if type(v) == "table" then
 			copy[k] = deepCopy(v)
 		else

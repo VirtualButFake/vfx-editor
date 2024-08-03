@@ -7,8 +7,6 @@ local Value = fusion.Value
 local listOption = require("@components/listOption")
 local texturePicker = require("@components/propertyFields/texturePicker")
 
-local theme = require("@src/theme")
-
 local PROPERTY_NAME = "Texture"
 
 return {
@@ -29,7 +27,7 @@ return {
 					PropertyName = PROPERTY_NAME,
 					Value = Value(instance[PROPERTY_NAME]),
 					LayoutOrder = 1,
-				}, theme:get("InstanceTreeItem", "gray", "default", "Base")),
+				}),
 			},
 		})
 

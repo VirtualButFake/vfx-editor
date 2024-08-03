@@ -13,6 +13,8 @@
         "@src": "src"
     },
     "luau-lsp.ignoreGlobs": [
-        ".lune/**"
+        ".lune/**",
+        "dist/**",
+        "[Pp]ackages/**",
     ]
 }

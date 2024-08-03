@@ -29,6 +29,9 @@ return {
 					PropertyName = PROPERTY_NAME,
 					Value = Value(instance[PROPERTY_NAME]),
 					LayoutOrder = 1,
+					Max = 1,
+					Min = 0,
+					SupportsEnvelope = true,
 				}, theme:get("InstanceTreeItem", "gray", "default", "Base")),
 			},
 		})
