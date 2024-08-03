@@ -51,7 +51,7 @@ type props = {
 	Items: fusion.Value<{ Instance }>,
 }
 
-local ENABLE_VIRTUAL_SCROLLER = settingsManager.getReactiveWithFallback("enable_virtual_scroller", true)
+local ENABLE_VIRTUAL_SCROLLER = settingsManager.getReactiveWithFallback("treeview_virtual_scroller", true)
 local LIGHTWEIGHT_MODE = settingsManager.getReactiveWithFallback("lightweight_mode", false)
 
 local function App(props: props)
@@ -134,6 +134,11 @@ local function App(props: props)
 						SearchMode = searchMode,
 						SharedContextMenuState = sharedContextMenuState,
 						Visible = isSelected,
+						[Cleanup] = {
+							Selection.SelectionChanged:Connect(function()
+								events.OnItemClicked:Fire(Selection:Get()[1])
+							end),
+						},
 					})
 			end, Clean),
 		},
@@ -417,8 +422,13 @@ local function App(props: props)
 			childrenReplacement:set(Selection:Get())
 
 			selectionChangedConnection = Selection.SelectionChanged:Connect(function()
-				print("Changed")
-				childrenReplacement:set(Selection:Get())
+				local currentSelection = Selection:Get()
+
+				if #currentSelection == 0 then
+					return
+				end
+
+				childrenReplacement:set(currentSelection)
 			end)
 		end
 	end
@@ -573,22 +583,20 @@ local function App(props: props)
 										searchMode:set({ id })
 										isVisible:set(false)
 									end,
-									Options = {
-										{
-											Id = "properties",
-											Label = "Properties",
-											Icon = "table-properties",
-										},
-										Computed(function()
-											return not LIGHTWEIGHT_MODE:get()
-													and {
-														Id = "instance",
-														Label = "Instance",
-														Icon = "cuboid",
-													}
-												or nil
-										end),
-									},
+									Options = Computed(function()
+										return {
+											{
+												Id = "properties",
+												Label = "Properties",
+												Icon = "table-properties",
+											},
+											not LIGHTWEIGHT_MODE:get() and {
+												Id = "instance",
+												Label = "Instance",
+												Icon = "cuboid",
+											} or nil,
+										}
+									end),
 									LayoutOrder = -1,
 								})
 							end, Clean),

@@ -15,16 +15,16 @@ dependencies = []
 [[package]]
 name = "tijne/vfxeditor"
 version = "0.1.0"
-dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionComponents", "virtualbutfake/fusion-components@0.1.4"], ["fusionUtils", "virtualbutfake/fusion-utils@0.1.0"], ["lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["signal", "sleitnick/signal@2.0.1"], ["tailwind", "virtualbutfake/tailwind@0.1.0"], ["themeFramework", "virtualbutfake/theme-framework@0.1.0"]]
+dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionComponents", "virtualbutfake/fusion-components@0.1.11"], ["fusionUtils", "virtualbutfake/fusion-utils@0.1.2"], ["lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["signal", "sleitnick/signal@2.0.1"], ["tailwind", "virtualbutfake/tailwind@0.1.1"], ["themeFramework", "virtualbutfake/theme-framework@0.1.2"]]
 
 [[package]]
 name = "virtualbutfake/fusion-components"
-version = "0.1.4"
-dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusion-utils@0.1.0"], ["tailwind", "virtualbutfake/tailwind@0.1.0"], ["themeFramework", "virtualbutfake/theme-framework@0.1.0"]]
+version = "0.1.11"
+dependencies = [["Lucide", "virtualbutfake/lucide-roblox@1.1.2"], ["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusion-utils@0.1.2"], ["tailwind", "virtualbutfake/tailwind@0.1.1"], ["themeFramework", "virtualbutfake/theme-framework@0.1.2"]]
 
 [[package]]
 name = "virtualbutfake/fusion-utils"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [["fusion", "elttob/fusion@0.2.0"]]
 
 [[package]]
@@ -34,15 +34,10 @@ dependencies = []
 
 [[package]]
 name = "virtualbutfake/tailwind"
-version = "0.0.135"
-dependencies = []
-
-[[package]]
-name = "virtualbutfake/tailwind"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = []
 
 [[package]]
 name = "virtualbutfake/theme-framework"
-version = "0.1.0"
-dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusion-utils@0.1.0"], ["tailwind", "virtualbutfake/tailwind@0.0.135"]]
+version = "0.1.2"
+dependencies = [["fusion", "elttob/fusion@0.2.0"], ["fusionUtils", "virtualbutfake/fusion-utils@0.1.2"], ["tailwind", "virtualbutfake/tailwind@0.1.1"]]

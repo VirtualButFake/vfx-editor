@@ -29,18 +29,18 @@ local function processFiles()
 		recursiveCopy("src", "temp")
 		executeCommand("rojo", { "sourcemap", "sourcemap.project.json", "-o", "sourcemap.json" })
 
-        -- optionally, place custom processing steps here. these steps should modify files in the temp directory
+		-- optionally, place custom processing steps here. these steps should modify files in the temp directory
 
 		process.env.RBLX_DEV = "true"
 		local status = executeCommand("darklua", { "process", "src", "temp" })
 
-        if status.code == 0 then
+		if status.code == 0 then
 			recursiveCopy("temp", "dist")
-        else 
-            logger:error("Did not update files due to Darklua error, check console for more information.")
+		else
+			logger:error("Did not update files due to Darklua error, check console for more information.")
 		end
 
-        fs.removeDir("temp")
+		fs.removeDir("temp")
 	end
 end
 
@@ -50,25 +50,32 @@ logger:success("Watching for file changes..")
 
 task.spawn(fileWatcher, "./src", function(files)
 	logger:info(`Detected changes in {#files} file(s)..`)
-	processFiles()
+
+	local success, err = pcall(function()
+		processFiles()
+	end)
+
+	if not success then
+		logger:error(`Failed to process files: {err}`)
+	end
 end, function(files)
-    if not hasDarkLua then
-        return
-    end
+	if not hasDarkLua then
+		return
+	end
 
-    for _, file in files do
-        logger:info(`{file} deleted, removing from build..`)
+	for _, file in files do
+		logger:info(`{file} deleted, removing from build..`)
 
-        if file:sub(1, 6) == "./src/" then
-            file = file:sub(7)
-        end
+		if file:sub(1, 6) == "./src/" then
+			file = file:sub(7)
+		end
 
-        if fs.isFile(`dist/{file}`) then
-            fs.removeFile(`dist/{file}`)
-        elseif fs.isDir(`dist/{file}`) then
-            fs.removeDir(`dist/{file}`)
-        end
-    end
+		if fs.isFile(`dist/{file}`) then
+			fs.removeFile(`dist/{file}`)
+		elseif fs.isDir(`dist/{file}`) then
+			fs.removeDir(`dist/{file}`)
+		end
+	end
 end)
 
 executeCommand("rojo", { "serve", "dev.project.json" }, {

@@ -95,7 +95,10 @@ local function objectPropertyField(props: props, useColor: theme.useColorFunctio
 
 				selectionConnection = props.Events.OnItemClicked:Connect(function(instance)
 					if isSelectingItem:get() then
-						props.Value:set(instance)
+						if props.Filter(instance) then
+							props.Value:set(instance)
+						end
+
 						sharedSelectState:set(nil)
 						isSelectingItem:set(false)
 					end

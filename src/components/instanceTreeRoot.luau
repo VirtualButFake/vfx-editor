@@ -294,7 +294,6 @@ local function instanceTree(props: props)
 		end
 
 		if props.ChildrenReplacement then
-			print("Found replacement", props.ChildrenReplacement)
 			local maps = {}
 
 			for _, child in props.ChildrenReplacement:get() do

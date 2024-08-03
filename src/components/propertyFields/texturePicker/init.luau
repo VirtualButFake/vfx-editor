@@ -34,7 +34,7 @@ local function texturePickerPropertyField(props: props)
 	local wasEnabled = false
 	local lastReturn = nil
 
-	local textures: fusion.Value<editor.textureList>? = settingsManager.getReactive("textures")
+	local textures: fusion.Value<editor.textureList>? = settingsManager.getReactiveWithFallback("textures", {})
 
 	local texturePath = Computed(function()
 		local data = props.Value:get()

@@ -9,7 +9,7 @@ local Value = fusion.Value
 
 local plugin = script:FindFirstAncestorWhichIsA("Plugin") or PluginDebugService:FindFirstChild("plugin") :: Plugin?
 
-local SETTING_PREFIX = "vfxEditor_" .. math.random()
+local SETTING_PREFIX = "vfxEditor_"
 
 settingsManager._localStorage = {}
 

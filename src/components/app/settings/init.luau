@@ -171,7 +171,7 @@ local function settingsMenu(props: props)
 											}),
 											ForPairs(category.fields, function(idx, field)
 												local fieldValue =
-													Value(settingsManager.get(field.pluginSettingKey) or field.default)
+													Value(if settingsManager.get(field.pluginSettingKey) ~= nil then settingsManager.get(field.pluginSettingKey) else field.default)
 
 												local isContextMenuVisible = Value(false)
 

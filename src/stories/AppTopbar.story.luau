@@ -12,16 +12,24 @@ local appTopbar = require("@src/components/appTopbar")
 return {
 	summary = "The app topbar, filled with dummy info",
 	controls = {
-		Height = 28,
+		Height = 32,
 		Width = 350,
 	},
 	story = storyBase(function(parent)
+		local part = Instance.new("Part")
+		part.Parent = game:GetService("CoreGui")
+
+		local function cloneWithParent(instance)
+			local clone = instance:Clone()
+			clone.Parent = instance.Parent
+			return clone
+		end
+
 		local instances = Value({
-			Instance.new("Part"),
-			Instance.new("Part"),
-			Instance.new("Part"),
-			Instance.new("Part"),
-			Instance.new("Part"),
+			cloneWithParent(part),
+			cloneWithParent(part),
+			cloneWithParent(part),
+			cloneWithParent(part),
 		})
 
 		local content = New("Frame")({
@@ -31,8 +39,8 @@ return {
 			[Children] = {
 				appTopbar({
 					Items = instances,
-					SelectedInstance = Value(instances[1]),
-                    SharedContextMenuState = Value(false),
+					SelectedInstance = Value(instances:get()[1]),
+					SharedContextMenuState = Value(false),
 				}),
 			},
 		})
@@ -41,6 +49,12 @@ return {
 
 		return function()
 			content:Destroy()
+
+			for _, instance in (instances:get()) do
+				instance:Destroy()
+			end
+
+			part:Destroy()
 		end
 	end),
 }

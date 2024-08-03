@@ -26,7 +26,7 @@ type props = {
 }
 
 local function newInstanceModal(props: props)
-	local selectedOptions = Value({})
+	local selectedOptions = Value({ "ParticleEmitter" })
 	local inputValue = Value("")
 
 	local debounce = false
@@ -133,6 +133,10 @@ local function newInstanceModal(props: props)
 								},
 							}
 					end),
+					OnOptionClicked = function(id, visible)
+						selectedOptions:set({ id })
+						visible:set(false)
+					end,
 					Slots = {
 						LeftInput = function()
 							return Computed(function()

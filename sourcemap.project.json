@@ -1,15 +1,10 @@
 {
-    "name": "VFXEditor",
-    "tree": {
-        "$className": "DataModel",
-        "ReplicatedStorage": {
-            "Packages": {
-                "$className": "Folder",
-                "VFXEditor": {
-                    "$path": "src"
-                },
-                "$path": "packages"
-            }
-        }
-    }
+	"name": "VFXEditor",
+	"tree": {
+		"$path": "src",
+		"Packages": {
+			"$className": "Folder",
+			"$path": "packages"
+		}
+	}
 }
