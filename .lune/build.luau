@@ -4,7 +4,7 @@ local fs = require("@lune/fs")
 local logger = require("./lib/logger").new(4)
 local executeCommand = require("./lib/executeCommand")
 
-local didError = false
+local didError = false 
 
 local function execCommandWrapper(...)
     local data = executeCommand(...)
