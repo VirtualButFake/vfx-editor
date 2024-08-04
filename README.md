@@ -31,6 +31,10 @@ To build the plugin, you will need [Aftman](https://github.com/LPGhatguy/aftman)
 
 ### Building
 
+> [!IMPORTANT]  
+> This project suffers from the `thread 'main' has overflowed its stack` issue.
+> You can fix this by running `ulimit -s 16384` before running the build command on Linux, or by increasing the Darklua executable stack size on Windows. You can do this by installing Visual Studio and opening the `Developer Command Prompt for VS` and running `editbin /STACK:16777216 "C:\Users\<your user>\.aftman\tool-storage\seaofvoices\darklua\0.13.1\darklua.exe"`.
+
 To build the plugin, clone the repository and run the following commands:
 
 ```bash
@@ -50,9 +54,9 @@ Contributions are always welcomed. Code should follow Stylua and Selene formatti
 
 In order to run the stories to test your code, place a .luau file with the following code in your plugins folder:
 
-````luau
+```luau
 plugin.Name = "plugin"
-````
+```
 
 and make sure that `Plugin Debugging` is enabled in the Studio settings.
 This will then allow the components to find a plugin when needed. [Flipbook](https://github.com/flipbook-labs/flipbook) is recommended as the storybook plugin.

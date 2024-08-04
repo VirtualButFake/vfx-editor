@@ -11,8 +11,8 @@ build.rbxm
 /[Ss]erverPackages
 
 # DarkLua builds
-/build
 /dist
+/temp
 
 # Zap output (done because of https://discord.com/channels/385151591524597761/1064606584430411906/1213016153538961478 in OSS discord)
 /.zap   
