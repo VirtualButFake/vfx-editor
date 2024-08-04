@@ -1,9 +1,12 @@
-local PluginDebugService = game:GetService("PluginDebugService")
-
 local fusion = require("@packages/fusion")
 local Hydrate = fusion.Hydrate
 
-local plugin = script:FindFirstAncestorWhichIsA("Plugin") or PluginDebugService:FindFirstChild("plugin") :: Plugin?
+local plugin = script:FindFirstAncestorWhichIsA("Plugin")
+
+if __DEV__ then
+	local PluginDebugService = game:GetService("PluginDebugService")
+	plugin = PluginDebugService:FindFirstChild("plugin") :: Plugin?
+end
 
 type props = {
 	Id: string,

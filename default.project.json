@@ -1,7 +1,10 @@
 {
-    "name": "VFXEditor",
-    "tree": {
-      "$path": "dist"
-    }
-  }
-  
+	"name": "VFXEditor",
+	"tree": {
+		"$path": "dist",
+		"packages": {
+			"$className": "Folder",
+			"$path": "packages"
+		}
+	}
+}

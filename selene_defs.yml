@@ -3,3 +3,7 @@ globals:
   require:
     args:
       - type: string
+  __DEV__:
+    type: boolean
+    property: read-only
+  

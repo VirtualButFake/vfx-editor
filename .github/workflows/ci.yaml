@@ -1,4 +1,4 @@
-name: Linting & styling checks
+name: CI
 on:
   push:
     branches:

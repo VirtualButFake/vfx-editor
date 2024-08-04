@@ -32,7 +32,7 @@ local function processFiles()
 		-- optionally, place custom processing steps here. these steps should modify files in the temp directory
 
 		process.env.RBLX_DEV = "true"
-		local status = executeCommand("darklua", { "process", "src", "temp" })
+		local status = executeCommand("darklua", { "process", "src", "temp", "-c", ".darklua_dev.json" })
 
 		if status.code == 0 then
 			recursiveCopy("temp", "dist")

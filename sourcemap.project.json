@@ -2,7 +2,7 @@
 	"name": "VFXEditor",
 	"tree": {
 		"$path": "src",
-		"Packages": {
+		"packages": {
 			"$className": "Folder",
 			"$path": "packages"
 		}

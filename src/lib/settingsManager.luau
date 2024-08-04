@@ -1,13 +1,16 @@
 -- primarily exists to wrap around Get/SetSetting so we don't have to get a new plugin each time
 -- and also turns its values into reactive values
-local PluginDebugService = game:GetService("PluginDebugService")
-
 local settingsManager = {}
 
 local fusion = require("@packages/fusion")
 local Value = fusion.Value
 
-local plugin = script:FindFirstAncestorWhichIsA("Plugin") or PluginDebugService:FindFirstChild("plugin") :: Plugin?
+local plugin = script:FindFirstAncestorWhichIsA("Plugin")
+
+if __DEV__ then
+	local PluginDebugService = game:GetService("PluginDebugService")
+	plugin = PluginDebugService:FindFirstChild("plugin") :: Plugin?
+end
 
 local SETTING_PREFIX = "vfxEditor_"
 

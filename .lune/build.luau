@@ -25,9 +25,7 @@ local function recursiveCopy(src, dest)
 
 		if meta.kind == "file" then
 			fs.writeDir(dest)
-
-            local content = fs.readFile(path):gsub("__DEV__", "false")
-			fs.writeFile(`{dest}/{file}`, content)
+			fs.writeFile(`{dest}/{file}`, fs.readFile(path))
 		elseif meta.kind == "dir" then
 			recursiveCopy(path, `{dest}/{file}`)
 		end
@@ -45,13 +43,16 @@ recursiveCopy("src", "dist")
 execCommandWrapper("rojo", { "sourcemap", "sourcemap.project.json", "-o", "sourcemap.json" })
 
 if hasDarkLua then
-	process.env.RBLX_DEV = "this value should be taken out of the code"
-	execCommandWrapper("darklua", { "process", "src", "dist" })
+	execCommandWrapper("darklua", { "process", "src", "dist" }, {
+        env = {
+            RBLX_DEV = "false"
+        }
+    })
 end
 
 -- get rid of stories; no need for those to be in the actual build
-if fs.isDir("dist/ui/stories") then
-	fs.removeDir("dist/ui/stories")
+if fs.isDir("dist/stories") then
+	fs.removeDir("dist/stories")
 end
 
 if not didError then

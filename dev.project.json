@@ -5,7 +5,7 @@
 		"ReplicatedStorage": {
 			"VFXEditor": {
 				"$path": "dist",
-				"Packages": {
+				"packages": {
 					"$className": "Folder",
 					"$path": "packages"
 				}
