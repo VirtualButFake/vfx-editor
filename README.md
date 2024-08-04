@@ -4,7 +4,7 @@
 
 An all-in-one tool for creating visual effects on Roblox.
 
-[![License](https://img.shields.io/github/license/virtualbutfake/vfx-editor)](https://github.com/virtualbutfake/vfx-editor/blob/master/LICENSE.md)
+[![License](https://img.shields.io/github/license/virtualbutfake/vfx-editor?style=flat)](https://github.com/virtualbutfake/vfx-editor/blob/master/LICENSE.md)
 [![CI](https://github.com/virtualbutfake/vfx-editor/actions/workflows/ci.yaml/badge.svg)](https://github.com/virtualbutfake/vfx-editor/actions)
 
 </div>
