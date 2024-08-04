@@ -19,7 +19,7 @@ jobs:
     - uses: ok-nick/setup-aftman@v0.3.0
       name: install aftman
     - name: Lint
-      run: ulimit -s 65532 && selene ./src
+      run: selene ./src
   style:
     name: Style
     runs-on: ubuntu-latest
