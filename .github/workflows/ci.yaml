@@ -18,12 +18,8 @@ jobs:
       uses: actions/checkout@v3
     - uses: ok-nick/setup-aftman@v0.3.0
       name: install aftman
-    - name: Increase stack size
-      run: ulimit -s 65532
-    - name: Check stack size 
-      run: ulimit -s
     - name: Lint
-      run: selene ./src
+      run: ulimit -s 65532 && selene ./src
   style:
     name: Style
     runs-on: ubuntu-latest
