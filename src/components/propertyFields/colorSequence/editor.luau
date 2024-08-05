@@ -370,8 +370,13 @@ local function editor(props: props)
 										return baseColor
 									end),
 									Position = UDim2.new(0, 0, 0, 16),
-									Size = UDim2.new(1, 0, 0.5, 0),
+									Size = UDim2.new(0, 16, 0, 16),
 									[Children] = {
+										New("UIStroke")({
+											Color = Computed(function()
+												return (props.useColor("Line") :: any).color
+											end),
+										}),
 										New("UICorner")({
 											CornerRadius = UDim.new(0, 4),
 										}),

@@ -7,9 +7,16 @@ if fs.isDir("packages") then
 	fs.removeDir("packages")
 end
 
-executeCommand("wally", {
+local status = executeCommand("wally", {
 	"install",
-}, nil, true)
+}, {
+    stdio = "inherit"   
+}, true)
+
+if not status.ok then 
+    logger:error("Failed to install packages!")
+    return
+end
 
 if not fs.isDir("packages") then 
     fs.writeDir("packages")
