@@ -66,6 +66,10 @@ This will then allow the components to find a plugin when needed. [Flipbook](htt
 
 This plugin is by no means perfect. If you find any bugs or have any suggestions, please create an issue.
 
+## Changelog
+
+For a full list of changes, please refer to the [changelog](CHANGELOG.md).
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/virtualbutfake/vfx-editor/blob/main/LICENSE.md) file for details.

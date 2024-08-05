@@ -219,19 +219,22 @@ local function App(props: props)
 							AutomaticSize = Enum.AutomaticSize.XY,
 							ButtonText = "Create New Instance",
 							OnClick = function()
-								local instance = Instance.new("Part")
-								instance.Size = Vector3.new(1, 1, 1)
-								instance.Position = (workspace.CurrentCamera.CFrame * CFrame.new(0, 0, -5)).Position
-								instance.Anchored = true
-								instance.Transparency = 1
+								local instance
 
-								local attachment = Instance.new("Attachment")
-								attachment.Parent = instance
+								historyHandler("create base instance", function()
+									instance = Instance.new("Part")
+									instance.Size = Vector3.new(1, 1, 1)
+									instance.Position = (workspace.CurrentCamera.CFrame * CFrame.new(0, 0, -5)).Position
+									instance.Anchored = true
+									instance.Transparency = 1
 
-								local particleEmitter = Instance.new("ParticleEmitter")
-								particleEmitter.Parent = attachment
+									local attachment = Instance.new("Attachment")
+									attachment.Parent = instance
 
-								instance.Parent = workspace
+									local particleEmitter = Instance.new("ParticleEmitter")
+									particleEmitter.Parent = attachment
+									instance.Parent = workspace
+								end)
 
 								props.Items:set({ instance })
 								selectedInstance:set(instance)
