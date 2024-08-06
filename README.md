@@ -23,13 +23,21 @@ This plugin replaces and revamps the functionality of features that previously r
 
 ## Getting Started
 
-To get started, you can either purchase the plugin on the Roblox Marketplace [here](https://create.roblox.com/store/asset/18800449515) for automatic updates and to support me, or build the plugin yourself by following the instructions below.
+To get started, you can either purchase the plugin on the Roblox Marketplace [here](https://create.roblox.com/store/asset/18800449515) for automatic updates and to support me, or build the plugin yourself.
+
+## Installing via GitHub releases
+1. Click the latest release under "Releases"
+2. Download the "build.rbxm" file
+3. Open your Plugins folder (if you are not sure where this is, open Studio, navigate to the Plugins tab and click the "Plugins Folder" button)
+4. Drag "build.rbxm" into this folder and restart Studio
+
+## Building
 
 ### Prerequisites
 
 To build the plugin, you will need [Aftman](https://github.com/LPGhatguy/aftman), a toolchain manager.
 
-### Building
+### Instructions
 
 > [!IMPORTANT]  
 > This project currently suffers from the `thread 'main' has overflowed its stack` issue caused by full-moon.
