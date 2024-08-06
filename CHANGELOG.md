@@ -1,6 +1,6 @@
 # 1.0.3
 Fixes
-- Fixed memory leak in
+- Fixed memory leak in `CanvasFrame` and `StandaloneScroller` that caused instances to stay in memory even post-destruction. Memory issues should be significantly alleviated, but there are still some issues. This will be addressed in a future release.
 
 # 1.0.2
 Fixes
