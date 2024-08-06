@@ -23,7 +23,7 @@ This plugin replaces and revamps the functionality of features that previously r
 
 ## Getting Started
 
-To get started, you can either purchase the plugin on the Roblox Marketplace [here](https://create.roblox.com/store/asset/18800449515) for automatic updates and to support me, or build the plugin yourself.
+To get started, you can either get the plugin on the Roblox Marketplace [here](https://create.roblox.com/store/asset/18800449515) for automatic updates, build the plugin yourself or grab it from GitHub releases.
 
 ## Installing via GitHub releases
 1. Click the latest release under "Releases"
