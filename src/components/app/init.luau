@@ -123,6 +123,8 @@ local function App(props: props)
 				local maxDepth = LIGHTWEIGHT_MODE:get() and 0
 					or settingsManager.getReactiveWithFallback("max_depth", 3):get()
 
+				local isDestroyed = Value(false)
+
 				return index,
 					instanceTreeRoot({
 						RootInstance = value,
@@ -134,10 +136,15 @@ local function App(props: props)
 						SearchMode = searchMode,
 						SharedContextMenuState = sharedContextMenuState,
 						Visible = isSelected,
+						IsDestroyed = isDestroyed,
 						[Cleanup] = {
 							Selection.SelectionChanged:Connect(function()
 								events.OnItemClicked:Fire(Selection:Get()[1])
 							end),
+							events,
+							function()
+								isDestroyed:set(true)
+							end,
 						},
 					})
 			end, Clean),

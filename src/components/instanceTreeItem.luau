@@ -89,6 +89,7 @@ type props = {
 	InstanceMap: fusion.Computed<instanceMapEntry>,
 	SharedState: sharedState,
 	Events: events,
+	IsDestroyed: fusion.Value<boolean>,
 }
 
 local LIGHTWEIGHT_MODE = settingsManager.getReactiveWithFallback("lightweight_mode", false)
@@ -649,10 +650,9 @@ local function instanceTreeItem(props: props)
 											InstanceMap = props.InstanceMap,
 											Events = props.Events,
 											SharedState = props.SharedState,
+											IsDestroyed = props.IsDestroyed,
 										})
-								end, function(index, value)
-									Clean(index, value)
-								end),
+								end, Clean),
 							},
 						})
 						else nil,

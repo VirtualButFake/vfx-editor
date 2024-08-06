@@ -30,6 +30,7 @@ type props = {
 	IsSelfSelected: fusion.Value<boolean>,
 	SharedContextMenuState: fusion.Value<boolean | fusion.Value<boolean>>,
 	Events: instanceTreeItem.events,
+	IsDestroyed: fusion.Value<boolean>,
 }
 
 export type events = instanceTreeItem.events
@@ -342,6 +343,10 @@ local function instanceTree(props: props)
 				VerticalAlignment = Enum.VerticalAlignment.Top,
 			}),
 			Computed(function()
+				if props.IsDestroyed:get() then
+					return {}
+				end
+
 				if props.ChildrenReplacement == nil then
 					return instanceTreeItem({
 						LayoutOrder = 0,
@@ -358,6 +363,7 @@ local function instanceTree(props: props)
 							SelectedProperty = Value({}),
 							CopiedValue = Value(),
 						},
+                        IsDestroyed = props.IsDestroyed,
 					})
 				end
 
@@ -386,6 +392,7 @@ local function instanceTree(props: props)
 							MaxDepth = props.MaxDepth,
 							Query = props.Query,
 							SharedState = sharedState,
+                            IsDestroyed = props.IsDestroyed,
 						})
 					)
 				end

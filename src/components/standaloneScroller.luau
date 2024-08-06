@@ -8,6 +8,7 @@ local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local Hydrate = fusion.Hydrate
 local New = fusion.New
+local Clean = fusion.cleanup
 
 local Computed = fusion.Computed
 local DoNothing = fusion.doNothing
@@ -68,6 +69,10 @@ local function standaloneScrollingFrame(frame: ScrollingFrame)
 		local function updateChildren()
 			local windowSize = scrollingFrameWindowSize:get(false)
 			local scrollPosition = scrollingFrameAbsolutePosition:get(false)
+
+			if POOLED_INSTANCES[scrollingFrame] == nil then
+				return
+			end
 
 			for _, instance in POOLED_INSTANCES[scrollingFrame] do
 				if instance.enabled and not instance.enabled:get(false) then
@@ -132,6 +137,7 @@ local function standaloneScrollingFrame(frame: ScrollingFrame)
 			end),
 			function()
 				POOLED_INSTANCES[scrollingFrame] = nil
+				scrollingFrame = nil
 			end,
 		})
 	end
@@ -236,6 +242,12 @@ local function standaloneScrollerEntry(props: standaloneScrollerEntryProps)
 				-- remove self from pooled instances
 				for i, instance in pooledInstances do
 					if instance.isRendered == isRendered then
+                        Clean(instance.children)
+
+                        for idx in instance do 
+                            instance[idx] = nil
+                        end
+
 						pooledInstances[i] = nil
 						break
 					end

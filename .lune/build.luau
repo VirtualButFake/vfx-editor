@@ -1,5 +1,6 @@
 local process = require("@lune/process")
 local fs = require("@lune/fs")
+local task = require("@lune/task")
 
 local logger = require("./lib/logger").new(4)
 local executeCommand = require("./lib/executeCommand")
@@ -7,13 +8,13 @@ local executeCommand = require("./lib/executeCommand")
 local didError = false
 
 local function execCommandWrapper(...)
-    local data = executeCommand(...)
+	local data = executeCommand(...)
 
-    if data.stderr ~= "" then
-        didError = true
-    end
+	if data.stderr ~= "" then
+		didError = true
+	end
 
-    return data
+	return data
 end
 
 local function recursiveCopy(src, dest)
@@ -38,26 +39,26 @@ end
 
 local hasDarkLua = fs.isFile(".darklua.json")
 
--- isolating this to just darklua would make sense, however that would require having a new project file just for this, which I don't feel like is worth it
-recursiveCopy("src", "dist")
-execCommandWrapper("rojo", { "sourcemap", "sourcemap.project.json", "-o", "sourcemap.json" })
+execCommandWrapper("rojo", { "sourcemap", "sourcemap.project.json", "-o", "sourcemap.json" }, {
+	stdio = "inherit",
+})
 
 if hasDarkLua then
-	execCommandWrapper("darklua", { "process", "src", "dist" }, {
-        env = {
-            RBLX_DEV = "false"
-        }
-    })
+	execCommandWrapper("darklua", { "process", "src", "temp", "-c", ".darklua.json" })
 end
 
 -- get rid of stories; no need for those to be in the actual build
+recursiveCopy("temp", "dist")
+
 if fs.isDir("dist/stories") then
 	fs.removeDir("dist/stories")
 end
 
-if not didError then
-	execCommandWrapper("rojo", { "build", "default.project.json", "-o", "build.rbxm" })
-	logger:success("Build complete!")
-else 
-    logger:error("Build failed due to errors.")
-end
+task.delay(1, function()
+	if not didError then
+		execCommandWrapper("rojo", { "build", "default.project.json", "-o", "build.rbxm" })
+		logger:success("Build complete!")
+	else
+		logger:error("Build failed due to errors.")
+	end
+end)

@@ -11,8 +11,16 @@ local topLayerProvider = fusionUtils.topLayerProvider
 
 local app = require("@components/app")
 
+--[[
+local screenGui = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("VFXEditor")
+app({ Items = Value({require("@src/stories/generateInstance")()}) }).Parent = screenGui.Frame
+
+leaving this code in here in case I need to find memory leaks again
+]]
+
 local toolbar = plugin:CreateToolbar("VFX Editor")
-local button = toolbar:CreateButton("Toggle VFX Editor", "Open/close the editor", "", "VFX Editor")
+local button =
+	toolbar:CreateButton("Toggle VFX Editor", "Open/close the editor", "rbxassetid://18834248930", "VFX Editor")
 button.ClickableWhenViewportHidden = true
 
 local widget
