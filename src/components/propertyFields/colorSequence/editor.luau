@@ -374,7 +374,7 @@ local function editor(props: props)
 									[Children] = {
 										New("UIStroke")({
 											Color = Computed(function()
-												return (props.useColor("Line") :: any).color
+												return props.useColor("Line").color
 											end),
 										}),
 										New("UICorner")({

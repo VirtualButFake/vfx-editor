@@ -47,7 +47,6 @@ theme:load(theme:build(Studio.Theme.Name))
 
 local wasDestroyed = false
 
--- this is suboptimal, but types refused to work if i did it the other way around
 return setmetatable({
 	global = globals,
 	getClassIcon = function(className)
