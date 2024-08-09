@@ -1,3 +1,8 @@
+# 1.0.6
+Changes
+- Update `fusionComponents` to fix potential recursive state error
+- `TexturePicker` now uses a different list format to prevent state updates causing unecessary rerenders
+
 # 1.0.5
 Changes
 - Bump `themeFramework` and `fusionComponents` for more extensible appearance modification support.

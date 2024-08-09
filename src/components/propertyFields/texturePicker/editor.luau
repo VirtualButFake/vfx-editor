@@ -811,40 +811,205 @@ local function editor(props: props)
 								ItemWidth = Value(EDITOR_BUTTON_SIZE + 4),
 								CanvasPosition = Value(Vector2.new()),
 								RenderItem = function(index: number)
-									local item = currentItems:get()[index]
+                                    -- this seems like a really bad way to do this, but I can't think of anything better
+                                    -- it's pretty creative I suppose?
+                                    local doNotRefresh
 
-									if item == nil then
-										return
-									end
+                                    local function doRefresh()
+                                        doNotRefresh = math.random()
 
-									local isThisContextMenuVisible = Value(false)
-									local options = {
-										{
-											Label = "Edit",
-											Icon = "pencil",
-											Color = "gray",
-											Disabled = Computed(function()
-												return next(selectedIndices:get()) ~= nil
-											end),
-											Callback = function()
-												if isModalVisible:get() then
-													return
-												end
+                                        return doNotRefresh
+                                    end
 
-												isThisContextMenuVisible:set(false)
-												modalContent:set(modifyTextureModal({
-													OverwriteDefaults = {
-														ID = item.id,
-														Name = item.name,
-														["Flipbook Layout"] = item.flipbookLayout
-																and Enum.ParticleFlipbookLayout["Grid" .. item.flipbookLayout]
-															or Enum.ParticleFlipbookLayout.None,
-													},
-													IsFolder = item.id == nil,
-													VerbUsed = "Edit",
-													useColor = useColor,
-													OnCreate = function(name, id, flipbookLayout)
-														local path = currentPath:get() or ""
+									local lastItem
+									local didItemChange = Computed(function()
+										local currentItem = currentItems:get()[index]
+
+										if currentItem == nil then
+											return doRefresh()
+										end
+
+										if
+											lastItem
+											and (
+												currentItem.name ~= lastItem.name
+												or (
+													currentItem.id ~= lastItem.id
+													or currentItem.content ~= lastItem.content
+												)
+											)
+										then
+											lastItem = table.clone(currentItem)
+											return doRefresh()
+										end
+
+                                        lastItem = table.clone(currentItem)
+                                        return doNotRefresh
+									end)
+
+									return Computed(function()
+										didItemChange:get()
+
+										local item = currentItems:get(false)[index]
+
+										if item == nil then
+											return nil
+										end
+
+										local isThisContextMenuVisible = Value(false)
+										local options = {
+											{
+												Label = "Edit",
+												Icon = "pencil",
+												Color = "gray",
+												Disabled = Computed(function()
+													return next(selectedIndices:get()) ~= nil
+												end),
+												Callback = function()
+													if isModalVisible:get(false) then
+														return
+													end
+
+													isThisContextMenuVisible:set(false)
+													modalContent:set(modifyTextureModal({
+														OverwriteDefaults = {
+															ID = item.id,
+															Name = item.name,
+															["Flipbook Layout"] = item.flipbookLayout
+																	and Enum.ParticleFlipbookLayout["Grid" .. item.flipbookLayout]
+																or Enum.ParticleFlipbookLayout.None,
+														},
+														IsFolder = item.id == nil,
+														VerbUsed = "Edit",
+														useColor = useColor,
+														OnCreate = function(name, id, flipbookLayout)
+															local path = currentPath:get() or ""
+															local usedTextures = textures and textures:get(false)
+
+															if not usedTextures then
+																return
+															end
+
+															local items = traverseTextureList(usedTextures, path)
+
+															-- make sure this is not a duplicate name, suffix with (x). filter on whether it's the current item though
+															local newName = name
+															local count = 1
+
+															while
+																tableFind(items, function(texture)
+																	return texture.name == newName and texture.id ~= id
+																end)
+															do
+																count = count + 1
+																newName = name .. " (" .. count .. ")"
+															end
+
+															for idx, texture in items do
+																if texture.name == item.name then
+																	item.name = newName
+																	item.id = id
+																	item.flipbookLayout = flipbookLayout
+
+																	items[idx] = item
+																	break
+																end
+															end
+
+															settingsManager.set("textures", usedTextures)
+															isModalVisible:set(false)
+														end,
+														OnClose = function()
+															isModalVisible:set(false)
+														end,
+													}))
+													isModalVisible:set(true)
+												end,
+											} or nil,
+											{
+												Label = "Move",
+												Icon = "folder-tree",
+												Color = "gray",
+												Callback = function()
+													isModalVisible:set(true)
+													isThisContextMenuVisible:set(false)
+													modalContent:set(moveItemModal({
+														IsFolder = item.content ~= nil,
+														useColor = useColor,
+														CurrentPath = currentPath:get(false) or { "Home" },
+														Textures = Value(textures:get(false)),
+														OnClose = function()
+															isModalVisible:set(false)
+														end,
+														OnMove = function(newPath: { string })
+															local usedTextures = textures and textures:get(false)
+
+															if not usedTextures then
+																return
+															end
+
+															local items = traverseTextureList(
+																usedTextures,
+																currentPath:get(false) or ""
+															)
+
+															if selectedIndices:get(false)[index] then
+																local selectedItems = {}
+
+																for i, isSelected in (selectedIndices:get(false)) do
+																	if isSelected then
+																		table.insert(selectedItems, items[i])
+																	end
+																end
+
+																deleteIds(selectedItems)
+
+																local newItems =
+																	traverseTextureList(usedTextures, newPath)
+
+																for _, selectedItem in selectedItems do
+																	table.insert(newItems, selectedItem)
+																end
+
+																selectedIndices:set({})
+															else
+																deleteIds({ item })
+
+																local newItems =
+																	traverseTextureList(usedTextures, newPath)
+
+																table.insert(newItems, item)
+															end
+
+															settingsManager.set("textures", usedTextures)
+															isModalVisible:set(false)
+
+															-- remove self from selected indices, and if we're in between any selected indices, move them forward by 1
+															local newSelectedIndices = selectedIndices:get(false)
+
+															for i, isSelected in newSelectedIndices do
+																if isSelected then
+																	if i == index then
+																		newSelectedIndices[i] = nil
+																	elseif i > index then
+																		newSelectedIndices[i - 1] = true
+																		newSelectedIndices[i] = nil
+																	end
+																end
+															end
+
+															selectedIndices:set(newSelectedIndices)
+														end,
+													}))
+												end,
+											},
+											{
+												Label = "Delete",
+												Icon = "trash",
+												Color = "gray",
+												Callback = function()
+													local function delete()
+														local path = currentPath:get(false) or ""
 														local usedTextures = textures and textures:get(false)
 
 														if not usedTextures then
@@ -853,154 +1018,52 @@ local function editor(props: props)
 
 														local items = traverseTextureList(usedTextures, path)
 
-														-- make sure this is not a duplicate name, suffix with (x). filter on whether it's the current item though
-														local newName = name
-														local count = 1
-
-														while
-															tableFind(items, function(texture)
-																return texture.name == newName and texture.id ~= id
-															end)
-														do
-															count = count + 1
-															newName = name .. " (" .. count .. ")"
-														end
-
-														for idx, texture in items do
-															if texture.name == item.name then
-																item.name = newName
-																item.id = id
-																item.flipbookLayout = flipbookLayout
-
-																items[idx] = item
-																break
-															end
-														end
-
-														settingsManager.set("textures", usedTextures)
-														isModalVisible:set(false)
-													end,
-													OnClose = function()
-														isModalVisible:set(false)
-													end,
-												}))
-												isModalVisible:set(true)
-											end,
-										} or nil,
-										{
-											Label = "Move",
-											Icon = "folder-tree",
-											Color = "gray",
-											Callback = function()
-												isModalVisible:set(true)
-												isThisContextMenuVisible:set(false)
-												modalContent:set(moveItemModal({
-													IsFolder = item.content ~= nil,
-													useColor = useColor,
-													CurrentPath = currentPath:get() or { "Home" },
-													Textures = Value(textures:get()),
-													OnClose = function()
-														isModalVisible:set(false)
-													end,
-													OnMove = function(newPath: { string })
-														local usedTextures = textures and textures:get(false)
-
-														if not usedTextures then
-															return
-														end
-
-														local items =
-															traverseTextureList(usedTextures, currentPath:get() or "")
-
-														if selectedIndices:get()[index] then
+														if selectedIndices:get(false)[index] then
 															local selectedItems = {}
 
-															for i, isSelected in (selectedIndices:get()) do
+															for i, isSelected in (selectedIndices:get(false)) do
 																if isSelected then
 																	table.insert(selectedItems, items[i])
 																end
 															end
 
 															deleteIds(selectedItems)
-
-															local newItems = traverseTextureList(usedTextures, newPath)
-
-															for _, selectedItem in selectedItems do
-																table.insert(newItems, selectedItem)
-															end
-
 															selectedIndices:set({})
 														else
 															deleteIds({ item })
-
-															local newItems = traverseTextureList(usedTextures, newPath)
-
-															table.insert(newItems, item)
 														end
 
 														settingsManager.set("textures", usedTextures)
-														isModalVisible:set(false)
+													end
 
-														-- remove self from selected indices, and if we're in between any selected indices, move them forward by 1
-														local newSelectedIndices = selectedIndices:get()
+													if
+														(item.content and #item.content > 0)
+														or selectedIndices:get(false)[index]
+													then
+														local textureChildren, folderChildren = 0, 0
 
-														for i, isSelected in newSelectedIndices do
-															if isSelected then
-																if i == index then
-																	newSelectedIndices[i] = nil
-																elseif i > index then
-																	newSelectedIndices[i - 1] = true
-																	newSelectedIndices[i] = nil
+														local function iterateItem(subItem)
+															for _, child in subItem do
+																if child.id then
+																	textureChildren += 1
+																else
+																	folderChildren += 1
+																	iterateItem(child.content)
 																end
 															end
 														end
 
-														selectedIndices:set(newSelectedIndices)
-													end,
-												}))
-											end,
-										},
-										{
-											Label = "Delete",
-											Icon = "trash",
-											Color = "gray",
-											Callback = function()
-												local function delete()
-													local path = currentPath:get() or ""
-													local usedTextures = textures and textures:get(false)
+														local items = currentItems:get(false)
 
-													if not usedTextures then
-														return
-													end
-
-													local items = traverseTextureList(usedTextures, path)
-
-													if selectedIndices:get()[index] then
-														local selectedItems = {}
-
-														for i, isSelected in (selectedIndices:get()) do
-															if isSelected then
-																table.insert(selectedItems, items[i])
+														for _, v in items do
+															if v.name == item.name then
+																iterateItem(v.content)
 															end
 														end
 
-														deleteIds(selectedItems)
-														selectedIndices:set({})
-													else
-														deleteIds({ item })
-													end
+														for idx, _ in selectedIndices:get(false) do
+															local child = items[idx]
 
-													settingsManager.set("textures", usedTextures)
-												end
-
-												if
-													(item.content and #item.content > 0)
-													or selectedIndices:get()[index]
-												then
-													local textureChildren, folderChildren = 0, 0
-
-													local function iterateItem(subItem)
-														for _, child in subItem do
 															if child.id then
 																textureChildren += 1
 															else
@@ -1008,184 +1071,165 @@ local function editor(props: props)
 																iterateItem(child.content)
 															end
 														end
-													end
 
-													local items = currentItems:get(false)
+														if folderChildren > 0 or textureChildren > 1 then
+															isModalVisible:set(true)
+															isThisContextMenuVisible:set(false)
+															modalContent:set(confirmDeleteModal({
+																useColor = useColor,
+																ContentCount = {
+																	Folders = folderChildren,
+																	Textures = textureChildren,
+																},
+																OnClick = function(confirmed)
+																	isModalVisible:set(false)
 
-													for _, v in items do
-														if v.name == item.name then
-															iterateItem(v.content)
+																	if confirmed then
+																		delete()
+																	end
+																end,
+															}))
+
+															return
 														end
 													end
 
-													for idx, _ in selectedIndices:get() do
-														local child = items[idx]
-
-														if child.id then
-															textureChildren += 1
-														else
-															folderChildren += 1
-															iterateItem(child.content)
-														end
-													end
-
-													if folderChildren > 0 or textureChildren > 1 then
-														isModalVisible:set(true)
-														isThisContextMenuVisible:set(false)
-														modalContent:set(confirmDeleteModal({
-															useColor = useColor,
-															ContentCount = {
-																Folders = folderChildren,
-																Textures = textureChildren,
-															},
-															OnClick = function(confirmed)
-																isModalVisible:set(false)
-
-																if confirmed then
-																	delete()
-																end
-															end,
-														}))
-
-														return
-													end
-												end
-
-												delete()
-											end,
-										},
-									}
-									local function customVisibleLogic(toOpen)
-										if toOpen then
-											if isContextMenuVisible:get() then
-												isContextMenuVisible:get():set(false)
-											end
-
-											isContextMenuVisible:set(isThisContextMenuVisible)
-											isThisContextMenuVisible:set(true)
-										else
-											if isContextMenuVisible:get() == isThisContextMenuVisible then
-												isContextMenuVisible:set(false)
-											end
-
-											isThisContextMenuVisible:set(false)
-										end
-									end
-
-									local appearanceOverride = Computed(function()
-										local color = theme.global.isDark:get() and tailwind.neutral[700]
-											or tailwind.neutral[200]
-
-										if selectedIndices:get()[index] then
-											color = tailwind.blue[500]
-										end
-
-										return {
-											_global = {
-												Stroke = color,
+													delete()
+												end,
 											},
 										}
-									end)
+										local function customVisibleLogic(toOpen)
+											if toOpen then
+												if isContextMenuVisible:get() then
+													isContextMenuVisible:get():set(false)
+												end
 
-									return contextMenu(
-										button({
-											Color = "gray",
-											Variant = "solid",
-											AppearanceOverride = appearanceOverride,
-											LayoutOrder = index,
-											Size = UDim2.new(1, -4, 1, -4), -- -4 for padding
-											AutomaticSize = Enum.AutomaticSize.None,
-											Position = UDim2.new(0, 2, 0, 2), -- +2 to center
-											OnClick = function()
-												if isCtrlHeld:get() then
-													local newSelectedIndices = selectedIndices:get()
-													newSelectedIndices[index] = not newSelectedIndices[index] or nil
-													selectedIndices:set(newSelectedIndices)
-												elseif isShiftHeld:get() then
-													local newSelectedIndices = selectedIndices:get()
-													local lastSelectedIndex = index
+												isContextMenuVisible:set(isThisContextMenuVisible)
+												isThisContextMenuVisible:set(true)
+											else
+												if isContextMenuVisible:get() == isThisContextMenuVisible then
+													isContextMenuVisible:set(false)
+												end
 
-													for i, isSelected in newSelectedIndices do
-														if isSelected then
-															lastSelectedIndex = i
+												isThisContextMenuVisible:set(false)
+											end
+										end
+
+										local appearanceOverride = Computed(function()
+											local color = theme.global.isDark:get() and tailwind.neutral[700]
+												or tailwind.neutral[200]
+
+											if selectedIndices:get()[index] then
+												color = tailwind.blue[500]
+											end
+
+											return {
+												_global = {
+													Stroke = color,
+												},
+											}
+										end)
+
+										return contextMenu(
+											button({
+												Color = "gray",
+												Variant = "solid",
+												AppearanceOverride = appearanceOverride,
+												LayoutOrder = index,
+												Size = UDim2.new(1, -4, 1, -4), -- -4 for padding
+												AutomaticSize = Enum.AutomaticSize.None,
+												Position = UDim2.new(0, 2, 0, 2), -- +2 to center
+												OnClick = function()
+													if isCtrlHeld:get() then
+														local newSelectedIndices = selectedIndices:get()
+														newSelectedIndices[index] = not newSelectedIndices[index] or nil
+														selectedIndices:set(newSelectedIndices)
+													elseif isShiftHeld:get() then
+														local newSelectedIndices = selectedIndices:get()
+														local lastSelectedIndex = index
+
+														for i, isSelected in newSelectedIndices do
+															if isSelected then
+																lastSelectedIndex = i
+															end
 														end
-													end
 
-													if lastSelectedIndex then
-														for i = math.min(index, lastSelectedIndex), math.max(index, lastSelectedIndex) do
-															newSelectedIndices[i] = true
+														if lastSelectedIndex then
+															for i = math.min(index, lastSelectedIndex), math.max(index, lastSelectedIndex) do
+																newSelectedIndices[i] = true
+															end
 														end
-													end
 
-													selectedIndices:set(newSelectedIndices)
-												elseif selectedIndices:get()[index] then
-													selectedIndices:set({})
-												else
-													if item.id then
-														-- texture
-														if props.Value and props.IsSelectingImage then
-															local flipbookLayout = item.flipbookLayout
-																	and "Grid" .. item.flipbookLayout
-																or "None"
-															props.Value:set(`{item.id},{flipbookLayout}`)
-														end
+														selectedIndices:set(newSelectedIndices)
+													elseif selectedIndices:get()[index] then
+														selectedIndices:set({})
 													else
-														-- folder
-														local oldPath = table.clone(currentPath:get())
-														table.insert(oldPath, item.name)
+														if item.id then
+															-- texture
+															if props.Value and props.IsSelectingImage then
+																local flipbookLayout = item.flipbookLayout
+																		and "Grid" .. item.flipbookLayout
+																	or "None"
+																props.Value:set(`{item.id},{flipbookLayout}`)
+															end
+														else
+															-- folder
+															local oldPath = table.clone(currentPath:get())
+															table.insert(oldPath, item.name)
 
-														currentPath:set(oldPath)
+															currentPath:set(oldPath)
+														end
 													end
-												end
-											end,
-											Content = {
-												New("UIListLayout")({
-													FillDirection = Enum.FillDirection.Vertical,
-													HorizontalAlignment = Enum.HorizontalAlignment.Center,
-													Padding = UDim.new(0, 4),
-													SortOrder = Enum.SortOrder.LayoutOrder,
-													VerticalAlignment = Enum.VerticalAlignment.Center,
-												}),
-												item.id and textureImage({
-													Image = item.id,
-													FlipbookMode = item.flipbookLayout,
-													Size = UDim2.new(0, 48, 0, 48),
-													[Children] = {
-														New("UICorner")({
-															CornerRadius = UDim.new(0, 4),
-														}),
-													},
-												}) or icon({
-													Icon = {
-														Name = "folder",
-														Size = 48,
-													},
-													Color = useColor("Title", true),
-												}),
-												text({
-													Appearance = useColor("Title", true),
-													Text = {
-														Label = item.name,
-														Font = theme.global.font,
-														TextSize = 14,
-													},
-													Size = UDim2.new(1, 0, 1, -56),
-													TextWrapped = true,
-													ClipsDescendants = true,
-												}),
-											},
-										}),
-										{
-											Color = "gray",
-											Variant = "default",
-											Enabled = true,
-											Visible = isThisContextMenuVisible,
-											VisibleLogic = customVisibleLogic,
-											Options = {
-												options,
-											},
-										}
-									)
+												end,
+												Content = {
+													New("UIListLayout")({
+														FillDirection = Enum.FillDirection.Vertical,
+														HorizontalAlignment = Enum.HorizontalAlignment.Center,
+														Padding = UDim.new(0, 4),
+														SortOrder = Enum.SortOrder.LayoutOrder,
+														VerticalAlignment = Enum.VerticalAlignment.Center,
+													}),
+													item.id and textureImage({
+														Image = item.id,
+														FlipbookMode = item.flipbookLayout,
+														Size = UDim2.new(0, 48, 0, 48),
+														[Children] = {
+															New("UICorner")({
+																CornerRadius = UDim.new(0, 4),
+															}),
+														},
+													}) or icon({
+														Icon = {
+															Name = "folder",
+															Size = 48,
+														},
+														Color = useColor("Title", true),
+													}),
+													text({
+														Appearance = useColor("Title", true),
+														Text = {
+															Label = item.name,
+															Font = theme.global.font,
+															TextSize = 14,
+														},
+														Size = UDim2.new(1, 0, 1, -56),
+														TextWrapped = true,
+														ClipsDescendants = true,
+													}),
+												},
+											}),
+											{
+												Color = "gray",
+												Variant = "default",
+												Enabled = true,
+												Visible = isThisContextMenuVisible,
+												VisibleLogic = customVisibleLogic,
+												Options = {
+													options,
+												},
+											}
+										)
+									end, Clean)
 								end,
 							}),
 						},
