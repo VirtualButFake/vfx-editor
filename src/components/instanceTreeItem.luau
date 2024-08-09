@@ -491,7 +491,7 @@ local function instanceTreeItem(props: props)
 													Color = "white",
 													Variant = "ghost",
 													OnClick = function()
-														showSubContent:set(not showSubContent:get())
+														showSubContent:set(not showSubContent:get(false))
 													end,
 													Content = Computed(function()
 														return baseIcon({
@@ -579,7 +579,7 @@ local function instanceTreeItem(props: props)
 												return showSubContent:get() and "square-minus" or "square-plus"
 											end),
 											Callback = function()
-												showSubContent:set(not showSubContent:get())
+												showSubContent:set(not showSubContent:get(false))
 											end,
 										},
 									},
@@ -781,7 +781,7 @@ local function instanceTreeItem(props: props)
 																	},
 																	AutomaticSize = Enum.AutomaticSize.XY,
 																	OnClick = function()
-																		showCategory:set(not showCategory:get())
+																		showCategory:set(not showCategory:get(false))
 																	end,
 																}),
 															},

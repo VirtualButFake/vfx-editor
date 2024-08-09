@@ -186,6 +186,10 @@ class.properties = {
 				linkedAttribute = "_vfxEditorEmitDelay",
 				render = input,
 				get = function(instance)
+					if instance:GetAttribute("EmitDelay") then
+						return instance:GetAttribute("EmitDelay")
+					end
+                    
 					return instance:GetAttribute("_vfxEditorEmitDelay") or 0
 				end,
 				set = function(instance, value)

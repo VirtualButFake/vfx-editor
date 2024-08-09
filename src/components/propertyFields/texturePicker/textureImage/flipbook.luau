@@ -37,6 +37,23 @@ local function flipbook(props: props)
 
 	local component
 
+	component = New("ImageLabel")({
+		BackgroundTransparency = 1,
+		Image = Computed(function()
+			if didFinish:get() and editableImage:get() == nil then
+				return props.Image
+			end
+
+			return ""
+		end),
+		ImageTransparency = 0,
+		ScaleType = Enum.ScaleType.Fit,
+		[Cleanup] = cleanup,
+		[Children] = {
+			editableImage,
+		},
+	})
+
 	task.spawn(function()
 		pcall(function()
 			editableImage:set(AssetService:CreateEditableImageAsync(props.Image))
@@ -64,25 +81,6 @@ local function flipbook(props: props)
 			)
 		end
 	end)
-
-	component = New("ImageLabel")({
-		BackgroundTransparency = 1,
-		Image = Computed(function()
-			if didFinish:get() and editableImage:get() == nil then
-				return props.Image
-			end
-
-			return ""
-		end),
-		ImageTransparency = 0,
-		ScaleType = Enum.ScaleType.Fit,
-		[Cleanup] = cleanup,
-		[Children] = {
-			editableImage,
-		},
-	})
-
-	task.spawn(function() end)
 
 	local timer = 0
 	table.insert(

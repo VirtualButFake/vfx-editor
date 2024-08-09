@@ -1324,7 +1324,7 @@ local function numberSequenceEditor(props: props)
 									end),
 									OnInputEnded = function(userInput)
 										if userInput.UserInputType == Enum.UserInputType.MouseButton2 then
-											isThisContextVisible:set(not isThisContextVisible:get())
+											isThisContextVisible:set(not isThisContextVisible:get(false))
 
 											if
 												isContextVisible:get() == isThisContextVisible

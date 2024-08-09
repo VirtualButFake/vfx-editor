@@ -431,7 +431,7 @@ local function editor(props: props)
 											isPopoverVisible:get():set(false)
 										end
 
-										isThisPopoverVisible:set(not isThisPopoverVisible:get())
+										isThisPopoverVisible:set(not isThisPopoverVisible:get(false))
 										isPopoverVisible:set(isThisPopoverVisible)
 
 										if isContextMenuVisible:get() then
@@ -597,7 +597,7 @@ local function editor(props: props)
 												isPopoverVisible:get():set(false)
 											end
 
-											isThisPopoverVisible:set(not isThisPopoverVisible:get())
+											isThisPopoverVisible:set(not isThisPopoverVisible:get(false))
 											isPopoverVisible:set(isThisPopoverVisible)
 
 											if isContextMenuVisible:get() then
@@ -686,7 +686,7 @@ local function editor(props: props)
 												isPopoverVisible:get():set(false)
 											end
 
-											isThisPopoverVisible:set(not isThisPopoverVisible:get())
+											isThisPopoverVisible:set(not isThisPopoverVisible:get(false))
 											isPopoverVisible:set(isThisPopoverVisible)
 
 											if isContextMenuVisible:get() then
