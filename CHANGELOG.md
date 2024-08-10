@@ -1,3 +1,9 @@
+# 1.0.7
+Changes
+- NumberSequence buttons now feature an input box alongside the graph button, to set a constant value.
+- A graph will now adjust itself to the max value in the sequence, if this is higher than the max size setting.
+- Decals are now taken into account with "Import Instances"
+
 # 1.0.6
 Changes
 - Update `fusionComponents` to fix potential recursive state error
