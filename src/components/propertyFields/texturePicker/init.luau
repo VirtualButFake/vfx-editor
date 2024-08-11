@@ -6,6 +6,7 @@ local Cleanup = fusion.Cleanup
 
 local Clean = fusion.cleanup
 local Computed = fusion.Computed
+local DoNothing = fusion.doNothing
 local Value = fusion.Value
 
 local fusionComponents = require("@packages/fusionComponents")
@@ -36,28 +37,44 @@ local function texturePickerPropertyField(props: props)
 
 	local textures: fusion.Value<editor.textureList>? = settingsManager.getReactiveWithFallback("textures", {})
 
+	local textureName = Value()
 	local texturePath = Computed(function()
+		textureName:set(nil)
+
 		local data = props.Value:get()
 		local id = data and data:split(",")[1]
 
 		if textures and textures:get() then
-			local function iterate(textureList: editor.textureList, path: { string }): { string }?
+			local function iterate(textureList: editor.textureList, path: { string }): boolean?
 				for key, texture in textureList do
 					if texture.id == nil then
-						local result = iterate(texture.content, { unpack(path), key })
+						local result = iterate(texture.content, path)
 
 						if result then
+							-- push down into table
+							table.insert(path, texture.name)
 							return result
 						end
 					elseif texture.id == id then
-						return { unpack(path), texture.name }
+						textureName:set(texture.name)
+						return true
 					end
 				end
 
 				return nil
 			end
 
-			return iterate(textures:get(), {}) or { "Home" }
+			local path = {}
+			iterate(textures:get(), path)
+
+			-- invert path
+			local newPath = { "Home" }
+
+			for i = #path, 1, -1 do
+				table.insert(newPath, path[i])
+			end
+
+			return newPath
 		end
 
 		return nil
@@ -75,11 +92,7 @@ local function texturePickerPropertyField(props: props)
 		ButtonText = Computed(function()
 			local path = texturePath:get()
 
-			if path and path[#path] == "Home" then
-				path = nil
-			end
-
-			if not props.Value:get() or props.Value:get().Texture == "" then
+			if not props.Value:get() or props.Value:get().Texture == "" or not textureName:get() then
 				return "None"
 			end
 
@@ -87,7 +100,7 @@ local function texturePickerPropertyField(props: props)
 				return "Unknown"
 			end
 
-			return path[#path]
+			return textureName:get()
 		end),
 		Padding = 2,
 		Size = UDim2.new(0, 16, 0, 16),
@@ -115,7 +128,7 @@ local function texturePickerPropertyField(props: props)
 										Value = props.Value,
 										Instance = props.Instance,
 										IsSelectingImage = true,
-										Path = texturePath,
+										Path = texturePath:get(false),
 									})),
 								})[1]
 							end
@@ -125,7 +138,7 @@ local function texturePickerPropertyField(props: props)
 							end
 
 							return { lastReturn }
-						end, Clean),
+						end, DoNothing),
 					},
 				})
 			end

@@ -167,29 +167,29 @@ local function importInstancesModal(props: props)
 					end
 				end
 
-                if child:IsA("Decal") then 
-                    local name = child.Name
+				if child:IsA("Decal") then
+					local name = child.Name
 
-                    if name == child.ClassName then
-                        name = child.Parent.Name
-                    end
+					if name == child.ClassName then
+						name = child.Parent.Name
+					end
 
-                    name = name:gsub("[^%w%s%-()]", "")
+					name = name:gsub("[^%w%s%-()]", "")
 
-                    table.insert(result, {
-                        name = name,
-                        id = child.Texture,
-                    })
+					table.insert(result, {
+						name = name,
+						id = child.Texture,
+					})
 
-                    table.insert(visualizationResult, {
-                        name = name,
-                        content = {},
-                        isItem = true,
-                        icon = theme.getClassIcon(child.ClassName):get(),
-                    })
+					table.insert(visualizationResult, {
+						name = name,
+						content = {},
+						isItem = true,
+						icon = theme.getClassIcon(child.ClassName):get(),
+					})
 
-                    hasInserted = true
-                end
+					hasInserted = true
+				end
 
 				-- if nothing has been found yet, then iterate through the children
 				if not hasInserted then

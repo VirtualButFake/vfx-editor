@@ -104,7 +104,7 @@ type props = {
 		Texture: string,
 		FlipbookLayout: Enum.ParticleFlipbookLayout,
 	}>?,
-	Path: fusion.Computed<{ string }>,
+	Path: { string },
 	IsSelectingImage: boolean,
 }
 
@@ -115,7 +115,7 @@ local function editor(props: props)
 	local useColor = theme:get("TexturePicker", "gray", "default", "Base")
 
 	local searchQuery = Value("")
-	local currentPath = Value(props.Path:get(false) or { "Home" })
+	local currentPath = Value(props.Path or { "Home" })
 
 	local textures = settingsManager.getReactiveWithFallback("textures", {})
 
@@ -196,7 +196,7 @@ local function editor(props: props)
 	local connections = {}
 
 	local function deleteIds(textureList: { texture })
-		local path = currentPath:get() or ""
+		local path = currentPath:get(false) or ""
 		local usedTextures = textures and textures:get(false)
 
 		if not usedTextures then
@@ -217,56 +217,97 @@ local function editor(props: props)
 		settingsManager.set("textures", usedTextures)
 	end
 
+	local function updateBreadcrumb()
+		local path = currentPath:get(false) or {}
+		local iteratedPath = {}
+
+		local labels = breadcrumbLabels:get(false)
+
+		local mappedCount = {}
+
+		for _, label in path do
+			if label == "" then
+				continue
+			end
+
+			if not mappedCount[label] then
+				mappedCount[label] = 0
+			end
+
+			mappedCount[label] += 1
+		end
+
+		local labelCount = {}
+
+		for i = #labels, 1, -1 do
+			local label = labels[i]
+			local labelPath = label.Text
+
+			if labelPath ~= "Home" then
+				-- remove the amount of times this label appears in the path at MOST
+				if not labelCount[labelPath] then
+					labelCount[labelPath] = 0
+				end
+
+				labelCount[labelPath] += 1
+
+				if mappedCount[labelPath] == nil or labelCount[labelPath] >= mappedCount[labelPath] then
+					table.remove(labels, i)
+				end
+			end
+		end
+
+		local currentCount = {}
+
+		for _, label in path do
+			if label == "" then
+				continue
+			end
+
+			table.insert(iteratedPath, label)
+			local currentIteratedPath = table.clone(iteratedPath)
+
+			local found = false
+
+			for _, existingLabel in labels do
+				if existingLabel.Text == label then
+					if
+						mappedCount[label] > 1
+						and (currentCount[label] == nil or currentCount[label] + 1 < mappedCount[label])
+					then
+						if not currentCount[label] then
+							currentCount[label] = 0
+						end
+
+						currentCount[label] += 1
+						break
+					end
+
+					found = true
+					break
+				end
+			end
+
+			if not found then
+				table.insert(labels, {
+					Text = label,
+					OnClick = function()
+						currentPath:set(currentIteratedPath)
+					end,
+				})
+			end
+		end
+
+		breadcrumbLabels:set(labels)
+	end
+
 	local component = New("Frame")({
 		Name = "TexturePicker",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 		[Cleanup] = {
 			connections,
-			Observer(currentPath):onChange(function()
-				local path = currentPath:get() or {}
-				local iteratedPath = {}
-
-				local labels = breadcrumbLabels:get()
-
-				-- Remove labels that are not in the path
-				for i = #labels, 1, -1 do
-					local label = labels[i]
-					local labelPath = label.Text
-
-					if not table.find(path, labelPath) and labelPath ~= "Home" then
-						table.remove(labels, i)
-					end
-				end
-
-				-- Add paths that are not in the labels
-				for _, label in path do
-					if label == "" then
-						continue
-					end
-
-					table.insert(iteratedPath, label)
-
-					local found = false
-					for _, existingLabel in labels do
-						if existingLabel.Text == label then
-							found = true
-							break
-						end
-					end
-
-					if not found then
-						table.insert(labels, {
-							Text = label,
-							OnClick = function()
-								currentPath:set(iteratedPath)
-							end,
-						})
-					end
-				end
-
-				breadcrumbLabels:set(labels)
-			end),
+			Observer(currentPath):onChange(updateBreadcrumb),
 		},
 		[Children] = {
 			frame({
@@ -422,20 +463,20 @@ local function editor(props: props)
 									Icon = "plus",
 									AutomaticSize = Enum.AutomaticSize.XY,
 									OnClick = function()
-										local currentPopoverVisible = isPopoverVisible:get()
+										local currentPopoverVisible = isPopoverVisible:get(false)
 
 										if
 											currentPopoverVisible ~= false
 											and currentPopoverVisible ~= isThisPopoverVisible
 										then
-											isPopoverVisible:get():set(false)
+											isPopoverVisible:get(false):set(false)
 										end
 
 										isThisPopoverVisible:set(not isThisPopoverVisible:get(false))
 										isPopoverVisible:set(isThisPopoverVisible)
 
-										if isContextMenuVisible:get() then
-											isContextMenuVisible:get():set(false)
+										if isContextMenuVisible:get(false) then
+											isContextMenuVisible:get(false):set(false)
 										end
 									end,
 								})
@@ -478,7 +519,7 @@ local function editor(props: props)
 													modalContent:set(createFolderModal({
 														useColor = useColor,
 														OnCreate = function(name: string)
-															local path = currentPath:get() or ""
+															local path = currentPath:get(false) or ""
 															local usedTextures = textures and textures:get(false)
 
 															if not usedTextures then
@@ -528,7 +569,7 @@ local function editor(props: props)
 														VerbUsed = "Create",
 														useColor = useColor,
 														OnCreate = function(name, id, flipbookLayout)
-															local path = currentPath:get() or ""
+															local path = currentPath:get(false) or ""
 															local usedTextures = textures and textures:get(false)
 
 															if not usedTextures then
@@ -588,20 +629,20 @@ local function editor(props: props)
 										Icon = "download",
 										AutomaticSize = Enum.AutomaticSize.XY,
 										OnClick = function()
-											local currentPopoverVisible = isPopoverVisible:get()
+											local currentPopoverVisible = isPopoverVisible:get(false)
 
 											if
 												currentPopoverVisible ~= false
 												and currentPopoverVisible ~= isThisPopoverVisible
 											then
-												isPopoverVisible:get():set(false)
+												isPopoverVisible:get(false):set(false)
 											end
 
 											isThisPopoverVisible:set(not isThisPopoverVisible:get(false))
 											isPopoverVisible:set(isThisPopoverVisible)
 
-											if isContextMenuVisible:get() then
-												isContextMenuVisible:get():set(false)
+											if isContextMenuVisible:get(false) then
+												isContextMenuVisible:get(false):set(false)
 											end
 										end,
 									}),
@@ -677,20 +718,20 @@ local function editor(props: props)
 										Icon = "upload",
 										AutomaticSize = Enum.AutomaticSize.XY,
 										OnClick = function()
-											local currentPopoverVisible = isPopoverVisible:get()
+											local currentPopoverVisible = isPopoverVisible:get(false)
 
 											if
 												currentPopoverVisible ~= false
 												and currentPopoverVisible ~= isThisPopoverVisible
 											then
-												isPopoverVisible:get():set(false)
+												isPopoverVisible:get(false):set(false)
 											end
 
 											isThisPopoverVisible:set(not isThisPopoverVisible:get(false))
 											isPopoverVisible:set(isThisPopoverVisible)
 
-											if isContextMenuVisible:get() then
-												isContextMenuVisible:get():set(false)
+											if isContextMenuVisible:get(false) then
+												isContextMenuVisible:get(false):set(false)
 											end
 										end,
 									}),
@@ -715,7 +756,7 @@ local function editor(props: props)
 													Color = "gray",
 												},
 												OnClick = function()
-													local path = currentPath:get() or ""
+													local path = currentPath:get(false) or ""
 													local usedTextures = textures and textures:get(false)
 
 													if not usedTextures then
@@ -743,7 +784,7 @@ local function editor(props: props)
 													isModalVisible:set(true)
 													modalContent:set(copyContentModal({
 														useColor = useColor,
-														ClipboardContent = HttpService:JSONEncode(textures:get()),
+														ClipboardContent = HttpService:JSONEncode(textures:get(false)),
 														OnClose = function()
 															isModalVisible:set(false)
 														end,
@@ -762,7 +803,7 @@ local function editor(props: props)
 														Color = "gray",
 													},
 													OnClick = function()
-														local path = currentPath:get() or ""
+														local path = currentPath:get(false) or ""
 														local usedTextures = textures and textures:get(false)
 
 														if not usedTextures then
@@ -772,7 +813,7 @@ local function editor(props: props)
 														local items = traverseTextureList(usedTextures, path)
 														local selectedItems = {}
 
-														for i, isSelected in (selectedIndices:get()) do
+														for i, isSelected in selectedIndices:get(false) do
 															if isSelected then
 																table.insert(selectedItems, items[i])
 															end
@@ -811,15 +852,15 @@ local function editor(props: props)
 								ItemWidth = Value(EDITOR_BUTTON_SIZE + 4),
 								CanvasPosition = Value(Vector2.new()),
 								RenderItem = function(index: number)
-                                    -- this seems like a really bad way to do this, but I can't think of anything better
-                                    -- it's pretty creative I suppose?
-                                    local doNotRefresh
+									-- this seems like a really bad way to do this, but I can't think of anything better
+									-- it's pretty creative I suppose?
+									local doNotRefresh
 
-                                    local function doRefresh()
-                                        doNotRefresh = math.random()
+									local function doRefresh()
+										doNotRefresh = math.random()
 
-                                        return doNotRefresh
-                                    end
+										return doNotRefresh
+									end
 
 									local lastItem
 									local didItemChange = Computed(function()
@@ -843,8 +884,8 @@ local function editor(props: props)
 											return doRefresh()
 										end
 
-                                        lastItem = table.clone(currentItem)
-                                        return doNotRefresh
+										lastItem = table.clone(currentItem)
+										return doNotRefresh
 									end)
 
 									return Computed(function()
@@ -883,7 +924,7 @@ local function editor(props: props)
 														VerbUsed = "Edit",
 														useColor = useColor,
 														OnCreate = function(name, id, flipbookLayout)
-															local path = currentPath:get() or ""
+															local path = currentPath:get(false) or ""
 															local usedTextures = textures and textures:get(false)
 
 															if not usedTextures then
@@ -956,7 +997,7 @@ local function editor(props: props)
 															if selectedIndices:get(false)[index] then
 																local selectedItems = {}
 
-																for i, isSelected in (selectedIndices:get(false)) do
+																for i, isSelected in selectedIndices:get(false) do
 																	if isSelected then
 																		table.insert(selectedItems, items[i])
 																	end
@@ -1021,7 +1062,7 @@ local function editor(props: props)
 														if selectedIndices:get(false)[index] then
 															local selectedItems = {}
 
-															for i, isSelected in (selectedIndices:get(false)) do
+															for i, isSelected in selectedIndices:get(false) do
 																if isSelected then
 																	table.insert(selectedItems, items[i])
 																end
@@ -1100,14 +1141,14 @@ local function editor(props: props)
 										}
 										local function customVisibleLogic(toOpen)
 											if toOpen then
-												if isContextMenuVisible:get() then
-													isContextMenuVisible:get():set(false)
+												if isContextMenuVisible:get(false) then
+													isContextMenuVisible:get(false):set(false)
 												end
 
 												isContextMenuVisible:set(isThisContextMenuVisible)
 												isThisContextMenuVisible:set(true)
 											else
-												if isContextMenuVisible:get() == isThisContextMenuVisible then
+												if isContextMenuVisible:get(false) == isThisContextMenuVisible then
 													isContextMenuVisible:set(false)
 												end
 
@@ -1140,12 +1181,12 @@ local function editor(props: props)
 												AutomaticSize = Enum.AutomaticSize.None,
 												Position = UDim2.new(0, 2, 0, 2), -- +2 to center
 												OnClick = function()
-													if isCtrlHeld:get() then
-														local newSelectedIndices = selectedIndices:get()
+													if isCtrlHeld:get(false) then
+														local newSelectedIndices = selectedIndices:get(false)
 														newSelectedIndices[index] = not newSelectedIndices[index] or nil
 														selectedIndices:set(newSelectedIndices)
-													elseif isShiftHeld:get() then
-														local newSelectedIndices = selectedIndices:get()
+													elseif isShiftHeld:get(false) then
+														local newSelectedIndices = selectedIndices:get(false)
 														local lastSelectedIndex = index
 
 														for i, isSelected in newSelectedIndices do
@@ -1161,7 +1202,7 @@ local function editor(props: props)
 														end
 
 														selectedIndices:set(newSelectedIndices)
-													elseif selectedIndices:get()[index] then
+													elseif selectedIndices:get(false)[index] then
 														selectedIndices:set({})
 													else
 														if item.id then
@@ -1174,7 +1215,7 @@ local function editor(props: props)
 															end
 														else
 															-- folder
-															local oldPath = table.clone(currentPath:get())
+															local oldPath = table.clone(currentPath:get(false))
 															table.insert(oldPath, item.name)
 
 															currentPath:set(oldPath)
@@ -1282,6 +1323,8 @@ local function editor(props: props)
 			)
 		end)
 	end
+
+	updateBreadcrumb()
 
 	return component
 end

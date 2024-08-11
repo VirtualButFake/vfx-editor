@@ -508,7 +508,7 @@ local function numberSequenceEditor(props: props)
 
 		local dereferencedPoints = {}
 
-		for _, point in (points:get()) do
+		for _, point in points:get() do
 			table.insert(dereferencedPoints, point:get())
 		end
 
@@ -1102,7 +1102,7 @@ local function numberSequenceEditor(props: props)
 											local verticalProgress = 1
 												- relativePosition.Y / graphContainer:get().AbsoluteSize.Y
 
-											for _, point in (points:get()) do
+											for _, point in points:get() do
 												local peekedPoint = peek(point)
 
 												if

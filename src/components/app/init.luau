@@ -185,7 +185,7 @@ local function App(props: props)
 
 				local countedItems = 0
 
-				for _ in (props.Items:get()) do
+				for _ in props.Items:get() do
 					countedItems = countedItems + 1
 				end
 
@@ -301,7 +301,7 @@ local function App(props: props)
 					local meetsCondition = false
 
 					if typeof(childrenReplacement:get()) == "table" then
-						for _, instance in (childrenReplacement:get()) do
+						for _, instance in childrenReplacement:get() do
 							local _, className = classDataHandler.getProperties(instance)
 
 							if className ~= "trail" and className ~= nil then

@@ -97,9 +97,9 @@ class.properties = {
 					return
 				end,
 				get = function(instance)
-                    if instance:GetAttribute("EmitCount") then 
-                        return instance:GetAttribute("EmitCount")
-                    end
+					if instance:GetAttribute("EmitCount") then
+						return instance:GetAttribute("EmitCount")
+					end
 
 					return instance:GetAttribute("_vfxEditorEmitAmount") or 20
 				end,
@@ -118,9 +118,9 @@ class.properties = {
 					return
 				end,
 				get = function(instance)
-                    if instance:GetAttribute("EmitDelay") then 
-                        return instance:GetAttribute("EmitDelay")
-                    end
+					if instance:GetAttribute("EmitDelay") then
+						return instance:GetAttribute("EmitDelay")
+					end
 
 					return instance:GetAttribute("_vfxEditorEmitDelay") or 0
 				end,

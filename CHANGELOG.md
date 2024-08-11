@@ -1,3 +1,10 @@
+# 1.0.8
+Changes
+- Fix issue with breadcrumb in texture storage not working correctly with <2 labels
+- Fix Texture path breaking and resulting in a crash
+- Made it so that clicking a texture that is set and found will now open the folder it is in
+- Fix bug where creating a folder would empty the texture storage
+
 # 1.0.7
 Changes
 - NumberSequence buttons now feature an input box alongside the graph button, to set a constant value.

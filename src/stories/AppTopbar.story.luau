@@ -50,7 +50,7 @@ return {
 		return function()
 			content:Destroy()
 
-			for _, instance in (instances:get()) do
+			for _, instance in instances:get() do
 				instance:Destroy()
 			end
 

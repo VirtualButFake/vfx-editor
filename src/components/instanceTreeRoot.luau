@@ -363,7 +363,7 @@ local function instanceTree(props: props)
 							SelectedProperty = Value({}),
 							CopiedValue = Value(),
 						},
-                        IsDestroyed = props.IsDestroyed,
+						IsDestroyed = props.IsDestroyed,
 					})
 				end
 
@@ -392,7 +392,7 @@ local function instanceTree(props: props)
 							MaxDepth = props.MaxDepth,
 							Query = props.Query,
 							SharedState = sharedState,
-                            IsDestroyed = props.IsDestroyed,
+							IsDestroyed = props.IsDestroyed,
 						})
 					)
 				end

@@ -38,6 +38,6 @@ return function()
 	emitter.Parent = attachment
 
 	part.Parent = workspace
-    part.Anchored = true
+	part.Anchored = true
 	return part
 end
