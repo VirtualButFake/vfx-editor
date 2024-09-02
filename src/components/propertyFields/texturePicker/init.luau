@@ -4,7 +4,6 @@ local fusion = require("@packages/fusion")
 local Children = fusion.Children
 local Cleanup = fusion.Cleanup
 
-local Clean = fusion.cleanup
 local Computed = fusion.Computed
 local DoNothing = fusion.doNothing
 local Value = fusion.Value
@@ -46,7 +45,7 @@ local function texturePickerPropertyField(props: props)
 
 		if textures and textures:get() then
 			local function iterate(textureList: editor.textureList, path: { string }): boolean?
-				for key, texture in textureList do
+				for _, texture in textureList do
 					if texture.id == nil then
 						local result = iterate(texture.content, path)
 

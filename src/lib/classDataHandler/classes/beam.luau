@@ -72,7 +72,7 @@ function class.emit(instance: Beam)
 		instance:SetAttribute("_vfxEditorEmitOriginal" .. property, originalValue)
 	end
 
-	task.delay((instance:GetAttribute("_vfxEditorEmitDelay") or 0) :: number, function()
+	task.delay((instance:GetAttribute("EmitDelay") or 0) :: number, function()
 		if instance:GetAttribute("_vfxEditorStartEmit") ~= emitStart then
 			return
 		end
@@ -183,14 +183,14 @@ class.properties = {
 			{
 				name = "Delay",
 				groupIdentifier = "numberInput",
-				linkedAttribute = "_vfxEditorEmitDelay",
+				linkedAttribute = "EmitDelay",
 				render = input,
 				get = function(instance)
 					if instance:GetAttribute("EmitDelay") then
 						return instance:GetAttribute("EmitDelay")
 					end
 
-					return instance:GetAttribute("_vfxEditorEmitDelay") or 0
+					return instance:GetAttribute("EmitDelay") or 0
 				end,
 				set = function(instance, value)
 					local number = tonumber(value)
@@ -199,7 +199,7 @@ class.properties = {
 						return false
 					end
 
-					instance:SetAttribute("_vfxEditorEmitDelay", number)
+					instance:SetAttribute("EmitDelay", number)
 					return
 				end,
 			},
