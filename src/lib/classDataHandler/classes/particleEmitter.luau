@@ -24,8 +24,8 @@ end
 
 function class.emit(instance: ParticleEmitter)
 	local emitStart = tick()
-	local emitAmount = instance:GetAttribute("_vfxEditorEmitAmount") or 20
-	local emitDelay = instance:GetAttribute("_vfxEditorEmitDelay") or 0
+	local emitAmount = instance:GetAttribute("EmitCount") or 20
+	local emitDelay = instance:GetAttribute("EmitDelay") or 0
 	instance:SetAttribute("_vfxEditorStartEmit", emitStart)
 
 	task.delay(emitDelay, function()
@@ -86,14 +86,14 @@ class.properties = {
 			{
 				name = "Amount",
 				groupIdentifier = "numberInput",
-				linkedAttribute = "_vfxEditorEmitAmount",
+				linkedAttribute = "EmitCount",
 				render = input,
 				set = function(instance, value)
 					if not tonumber(value) then
 						return false
 					end
 
-					instance:SetAttribute("_vfxEditorEmitAmount", value)
+					instance:SetAttribute("EmitCount", value)
 					return
 				end,
 				get = function(instance)
@@ -101,20 +101,20 @@ class.properties = {
 						return instance:GetAttribute("EmitCount")
 					end
 
-					return instance:GetAttribute("_vfxEditorEmitAmount") or 20
+					return instance:GetAttribute("EmitCount") or 20
 				end,
 			},
 			{
 				name = "Delay",
 				groupIdentifier = "numberInput",
-				linkedAttribute = "_vfxEditorEmitDelay",
+				linkedAttribute = "EmitDelay",
 				render = input,
 				set = function(instance, value)
 					if not tonumber(value) then
 						return false
 					end
 
-					instance:SetAttribute("_vfxEditorEmitDelay", value)
+					instance:SetAttribute("EmitDelay", value)
 					return
 				end,
 				get = function(instance)
@@ -122,7 +122,7 @@ class.properties = {
 						return instance:GetAttribute("EmitDelay")
 					end
 
-					return instance:GetAttribute("_vfxEditorEmitDelay") or 0
+					return instance:GetAttribute("EmitDelay") or 0
 				end,
 			},
 		},
@@ -282,7 +282,7 @@ class.properties = {
 						LayoutOrder = props.LayoutOrder,
 						Min = 0,
 						Max = 20,
-						Step = 0.5,
+						Step = 0.1,
 						Instance = props.Instance,
 						PropertyName = props.PropertyName,
 					})

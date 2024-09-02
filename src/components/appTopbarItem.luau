@@ -3,6 +3,7 @@ local Spring = fusion.Spring
 local Tween = fusion.Tween
 
 local Children = fusion.Children
+local Cleanup = fusion.Cleanup
 local New = fusion.New
 local Event = fusion.OnEvent
 
@@ -51,6 +52,7 @@ local function AppTopbarItem(props: props)
 	)
 
 	local classIcon = theme.getClassIcon(props.Item.ClassName)
+	local itemName = Value(props.Item.Name)
 
 	return New("TextButton")({
 		Name = "AppTopbarItemWrapper",
@@ -71,6 +73,11 @@ local function AppTopbarItem(props: props)
 			isHovering:set(false)
 			isPressing:set(false)
 		end,
+		[Cleanup] = {
+			props.Item:GetPropertyChangedSignal("Name"):Connect(function()
+				itemName:set(props.Item.Name)
+			end),
+		},
 		[Children] = {
 			baseFrame({
 				Name = "AppTopbarItem",
@@ -177,7 +184,7 @@ local function AppTopbarItem(props: props)
 							baseText({
 								Name = "Text",
 								Appearance = useColor("Text", true),
-								Text = props.Item.Name,
+								Text = itemName,
 								AutomaticSize = Enum.AutomaticSize.XY,
 								BackgroundTransparency = 1,
 								LayoutOrder = 1,
