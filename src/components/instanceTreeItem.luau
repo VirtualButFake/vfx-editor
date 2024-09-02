@@ -61,7 +61,7 @@ export type instanceMapEntry = {
 export type events = {
 	OnItemClicked: signal.Signal<Instance>,
 	OnPlusClicked: signal.Signal<Instance>,
-	AddTab: signal.Signal<Instance>,
+	AddTab: signal.Signal<Instance>
 }
 
 export type sharedState = {
@@ -1096,6 +1096,7 @@ local function instanceTreeItem(props: props)
 																local resetPosition = Value(false)
 
 																local function handleRMB()
+                                                                    print("Guh", isVisible:get())
 																	if isVisible:get() then
 																		local currentState =
 																			props.SharedState.OpenedContextMenu:get()
@@ -1338,6 +1339,7 @@ local function instanceTreeItem(props: props)
 																		Enabled = isVisible,
 																		Visible = isPropertyContextMenuVisible,
 																		VisibleLogic = function(wouldBeVisible)
+                                                                            print(wouldBeVisible)
 																			-- while this generally won't be called, there's a few edge cases (ie virtual scroller hiding button, so input doesnt sink)
 																			if not wouldBeVisible then
 																				local currentState =

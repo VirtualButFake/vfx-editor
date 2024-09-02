@@ -1462,7 +1462,7 @@ local function numberSequenceEditor(props: props)
 											newDot.index = pointIndex == 1 and 0 or 1
 										end
 
-										inputTimeText:set(tostring(newDot.index), true)
+										inputTimeText:set(tostring(math.round(newDot.index * 100) / 100), true)
 										dot:set(newDot, true)
 
 										rerenderGraph()
@@ -1512,7 +1512,7 @@ local function numberSequenceEditor(props: props)
 										local newDot = table.clone(dot:get())
 										newDot.value = math.clamp(newValue, props.Min, props.Max)
 
-										inputValueText:set(tostring(newDot.value), true)
+										inputValueText:set(tostring(math.round(newDot.value * 100) / 100), true)
 										dot:set(newDot, true)
 
 										rerenderGraph()
@@ -1562,7 +1562,7 @@ local function numberSequenceEditor(props: props)
 										local newDot = table.clone(dot:get())
 										newDot.envelope = math.clamp(newEnvelope, 0, props.Max)
 
-										inputEnvelopeText:set(tostring(newDot.envelope), true)
+										inputEnvelopeText:set(tostring(math.round(newDot.envelope * 100) / 100), true)
 										dot:set(newDot, true)
 
 										rerenderGraph()

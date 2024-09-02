@@ -282,7 +282,7 @@ class.properties = {
 						LayoutOrder = props.LayoutOrder,
 						Min = 0,
 						Max = 20,
-						Step = 0.5,
+						Step = 0.1,
 						Instance = props.Instance,
 						PropertyName = props.PropertyName,
 					})

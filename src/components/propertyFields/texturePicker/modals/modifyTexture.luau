@@ -45,7 +45,7 @@ local inputs = {
 		Default = "",
 		Validate = function(value)
 			-- the value must be alphanumeric, spaces, or hyphens and cannot be empty
-			local usedValue = value:get()
+			local usedValue = value:get(false)
 			return usedValue:match("^[%w%s-()]+$") ~= nil and not usedValue:match("^%s*$")
 		end,
 	},
@@ -56,7 +56,7 @@ local inputs = {
 		Default = "",
 		NeedsTexture = true,
 		Validate = function(value)
-			local usedValue = value:get()
+			local usedValue = value:get(false)
 
 			if usedValue:match("^rbxassetid://[0-9]+$") == nil then
 				value:set("rbxassetid://" .. (usedValue:match("%d+") or "0"))
@@ -104,7 +104,7 @@ local inputs = {
 		end,
 		Default = Enum.ParticleFlipbookLayout.None,
 		Disabled = function(inputValues)
-			local imageDimensions = getImageResolution(inputValues["ID"]:get())
+			local imageDimensions = getImageResolution(inputValues["ID"]:get(false))
 
 			-- allowed dimenisons are 8x8, 16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024
 			if imageDimensions.X % 8 == 0 and imageDimensions.Y % 8 == 0 then
@@ -252,16 +252,16 @@ local function createTextureModal(props: props)
 					end
 
 					if inputValues["ID"] then
-						local flipbookMode: Enum.ParticleFlipbookLayout = inputValues["Flipbook Layout"]:get()
+						local flipbookMode: Enum.ParticleFlipbookLayout = inputValues["Flipbook Layout"]:get(false)
 						local withoutGrid = flipbookMode.Name:gsub("Grid", "")
 
 						props.OnCreate(
-							inputValues["Name"]:get(),
-							inputValues["ID"]:get(),
+							inputValues["Name"]:get(false),
+							inputValues["ID"]:get(false),
 							flipbookMode ~= Enum.ParticleFlipbookLayout.None and withoutGrid or nil
 						)
 					else
-						props.OnCreate(inputValues["Name"]:get())
+						props.OnCreate(inputValues["Name"]:get(false))
 					end
 
 					hasCreated = true

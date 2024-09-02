@@ -1,3 +1,7 @@
+# 1.0.9
+Changes
+- ZOffset now uses a step size of 0.1 instead of it's previous 0.5, to allow for more precise control
+
 # 1.0.8
 Changes
 - Fix issue with breadcrumb in texture storage not working correctly with <2 labels
