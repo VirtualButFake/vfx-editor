@@ -3,7 +3,7 @@
 Changes
 
 - ZOffset now uses a step size of 0.1 instead of it's previous 0.5, to allow for more precise control
-- Attributes now use `EmitCount` and `EmitDelay`
+- Attributes now use `EmitCount` and `EmitDelay` ([#7](https://github.com/VirtualButFake/vfx-editor/issues/7))
 
 Fixes
 
