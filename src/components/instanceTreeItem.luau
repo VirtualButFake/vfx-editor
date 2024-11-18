@@ -69,7 +69,7 @@ export type sharedState = {
 	OpenedContextMenu: fusion.Value<boolean | fusion.Value<boolean>>,
 	CopiedValue: fusion.Value<{
 		value: any,
-		type: any, -- not defining this type since it's so dynamice
+		type: any, -- not defining this type since it's so dynamic
 	}>,
 }
 
