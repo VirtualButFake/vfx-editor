@@ -7,7 +7,7 @@ return function(command, args, options, ignoreErrors)
 		stdio = "default",
 	})
 
-	if data.stderr ~= "" and not ignoreErrors then
+	if data.stderr ~= "" and (not ignoreErrors or data.code ~= 0) then
 		logger:error(`Error occurred when running \"{command}\" (code {data.code}): \n{data.stderr}`)
 	end
 

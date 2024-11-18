@@ -39,7 +39,7 @@ if fs.isDir("Packages") then
 		"--sourcemap",
 		"sourcemap.json",
 		"./Packages",
-	}) 
+	}, nil, true) 
 
     fs.move("./Packages", "./packages", true)
 end

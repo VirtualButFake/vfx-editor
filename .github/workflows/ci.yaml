@@ -2,32 +2,32 @@ name: CI
 on:
   push:
     branches:
-    - master
-    - main
+      - master
+      - main
   pull_request:
     branches:
-    - master
-    - main
+      - master
+      - main
 
 jobs:
-  lint: 
+  lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - uses: ok-nick/setup-aftman@v0.3.0
-      name: install aftman
-    - name: Lint
-      run: selene ./src
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: CompeyDev/setup-rokit@v0.1.2
+        name: Install Rokit
+      - name: Lint
+        run: selene ./src
   style:
     name: Style
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - uses: JohnnyMorganz/stylua-action@v2
-      with:
-        version: latest
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --check ./src
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: JohnnyMorganz/stylua-action@v2
+        with:
+          version: latest
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --check ./src
